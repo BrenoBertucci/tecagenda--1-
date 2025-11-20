@@ -19,6 +19,35 @@ export interface User {
     email: string;
     role: UserRole;
     avatarUrl?: string;
+    deletionRequested?: boolean;
+}
+
+export interface LogEntry {
+    id: string;
+    timestamp: string;
+    action: string;
+    userId?: string;
+    userName?: string;
+    details?: string;
+}
+
+export enum LogLevel {
+    INFO = 'INFO',
+    WARNING = 'WARNING',
+    ERROR = 'ERROR',
+    CRITICAL = 'CRITICAL'
+}
+
+export interface StructuredLog {
+    id: string;
+    timestamp: string;
+    level: LogLevel;
+    action: string;
+    userId?: string;
+    userEmail?: string; // Anonymized
+    details?: Record<string, any>;
+    encrypted: boolean;
+    hash?: string; // Integrity check
 }
 
 export interface Technician extends User {

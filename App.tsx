@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-    User, UserRole, Technician, Appointment,
-    AppointmentStatus, DaySchedule, Review
-} from './types';
+import { User, Technician, Appointment, Review, UserRole, AppointmentStatus, DaySchedule, StructuredLog } from './types';
+import { logService } from './services/LogService';
 import { MOCK_TECHS, generateMockSchedule } from './constants';
 import { Button } from './components/Button';
+import {
+    Shield, Lock, AlertCircle, User as UserIcon, ArrowLeft,
+    Calendar, MapPin, Star, Search, Filter, ChevronLeft,
+    Clock, CheckCircle, History, Smartphone, LogOut, Menu, X, FileText, Settings
+} from 'lucide-react';
+import { LoginView } from './components/LoginView';
+import { RegisterSelectionView } from './components/RegisterSelectionView';
+import { RegisterClientView } from './components/RegisterClientView';
+import { RegisterTechView } from './components/RegisterTechView';
+import { SettingsView } from './components/SettingsView';
+import { AdminLoginView } from './components/AdminLoginView';
+import { AdminDashboard } from './components/AdminDashboard';
 import { ReviewForm } from './components/ReviewForm';
 import { ReviewList } from './components/ReviewList';
-import { AdminDashboard } from './components/AdminDashboard';
-import {
-    Smartphone, MapPin, Star, Calendar, Clock,
-    User as UserIcon, Search, LogOut, ChevronLeft,
-    CheckCircle, XCircle, AlertCircle, Settings, History,
-    Camera, Mail, Lock, ArrowLeft
-} from 'lucide-react';
+import { TermsView, PrivacyView } from './components/LegalDocs';
+
+import { Footer } from './components/Footer';
+import { TechDashboard } from './components/TechDashboard';
 
 // --- GLOBAL STATE TYPES ---
 
@@ -28,7 +35,10 @@ type ViewState =
     | 'CLIENT_BOOKING'
     | 'CLIENT_APPOINTMENTS'
     | 'TECH_DASHBOARD'
-    | 'ADMIN_DASHBOARD';
+    | 'ADMIN_DASHBOARD'
+    | 'ADMIN_LOGIN'
+    | 'TERMS'
+    | 'PRIVACY';
 
 interface DbUser extends User {
     password?: string;
@@ -41,387 +51,6 @@ interface DbUser extends User {
 }
 
 // --- SUB-COMPONENTS (MOVED OUTSIDE APP) ---
-
-// 1. Login Component
-interface LoginViewProps {
-    usersDb: DbUser[];
-    onLoginSuccess: (user: User) => void;
-    onNavigateRegister: () => void;
-    onError: (msg: string) => void;
-    setCurrentUser: (user: User) => void; // Added for admin login
-    setCurrentView: (view: ViewState) => void; // Added for admin login
-    setNotification: (notification: { msg: string; type: 'success' | 'error' }) => void; // Added for admin login
-}
-
-const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError, setCurrentUser, setCurrentView, setNotification }: LoginViewProps) => {
-    const [email, setEmail] = useState('');
-    const [pass, setPass] = useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // Secure Admin Login Check
-        if (email === 'ADM' && pass === '100731594') {
-            const adminUser: User = {
-                id: 'admin-master',
-                name: 'Administrador',
-                email: 'admin@tecagenda.com',
-                role: UserRole.ADMIN
-            };
-            setCurrentUser(adminUser);
-            setCurrentView('ADMIN_DASHBOARD');
-            setNotification({ msg: 'Bem-vindo, Administrador.', type: 'success' });
-            return;
-        }
-
-        const user = usersDb.find(u => u.email === email && u.password === pass);
-
-        if (user) {
-            const sessionUser: User = {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                avatarUrl: user.avatarUrl
-            };
-            onLoginSuccess(sessionUser);
-        } else {
-            onError('Email ou senha inválidos');
-        }
-    };
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
-            <div className="w-full max-w-sm animate-fade-in">
-                <div className="text-center mb-8">
-                    <div className="bg-primary-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-200 transform rotate-3">
-                        <Smartphone className="text-white" size={32} />
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-900">Bem-vindo de volta</h2>
-                    <p className="text-slate-500">Acesse sua conta para continuar</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
-                            <input
-                                type="email"
-                                required
-                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                                placeholder="seu@email.com"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
-                            <input
-                                type="password"
-                                required
-                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                                placeholder="••••••••"
-                                value={pass}
-                                onChange={e => setPass(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <Button type="submit" fullWidth size="lg" className="mt-2 shadow-md">Entrar</Button>
-
-                    <div className="pt-4 text-center">
-                        <p className="text-sm text-slate-600">Não tem uma conta?</p>
-                        <button
-                            type="button"
-                            onClick={onNavigateRegister}
-                            className="text-primary-600 font-semibold hover:underline mt-1"
-                        >
-                            Cadastrar-se agora
-                        </button>
-                    </div>
-                </form>
-
-                <div className="mt-8 text-center">
-                    <p className="text-xs text-slate-400 bg-slate-100 p-3 rounded-lg inline-block border border-slate-200">
-                        <span className="font-semibold block mb-1">Dica de Teste (Dados Mockados):</span>
-                        <div className="flex justify-between gap-4 text-left">
-                            <div>
-                                <strong>Cliente:</strong><br />maria@email.com<br />123
-                            </div>
-                            <div>
-                                <strong>Técnico:</strong><br />carlos@tecagenda.com<br />123
-                            </div>
-                        </div>
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// 2. Register Selection
-const RegisterSelectionView = ({ onNavigate }: { onNavigate: (view: ViewState) => void }) => (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
-        <div className="w-full max-w-sm animate-fade-in">
-            <button onClick={() => onNavigate('LOGIN')} className="mb-6 flex items-center text-slate-500 hover:text-slate-900 transition-colors">
-                <ArrowLeft size={20} className="mr-1" /> Voltar
-            </button>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Criar Conta</h2>
-            <p className="text-slate-500 mb-8">Como você deseja usar o TecAgenda?</p>
-
-            <div className="space-y-4">
-                <button
-                    onClick={() => onNavigate('REGISTER_CLIENT')}
-                    className="w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-primary-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
-                >
-                    <div className="bg-primary-50 p-3 rounded-full group-hover:bg-primary-100 transition-colors">
-                        <UserIcon className="text-primary-600" size={24} />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-900 group-hover:text-primary-700 transition-colors">Sou Cliente</h3>
-                        <p className="text-sm text-slate-500">Busco consertar meu celular</p>
-                    </div>
-                </button>
-
-                <button
-                    onClick={() => onNavigate('REGISTER_TECH')}
-                    className="w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-primary-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
-                >
-                    <div className="bg-primary-50 p-3 rounded-full group-hover:bg-primary-100 transition-colors">
-                        <Smartphone className="text-primary-600" size={24} />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-900 group-hover:text-primary-700 transition-colors">Sou Técnico</h3>
-                        <p className="text-sm text-slate-500">Quero oferecer meus serviços</p>
-                    </div>
-                </button>
-            </div>
-        </div>
-    </div>
-);
-
-// 3. Register Client
-const RegisterClientView = ({ onRegister, onBack }: { onRegister: (user: DbUser) => void, onBack: () => void }) => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [pass, setPass] = useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onRegister({
-            id: `c-${Date.now()}`,
-            name,
-            email,
-            password: pass,
-            role: UserRole.CLIENT
-        });
-    };
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
-            <div className="w-full max-w-sm animate-fade-in">
-                <button onClick={onBack} className="mb-6 flex items-center text-slate-500 hover:text-slate-900 transition-colors">
-                    <ArrowLeft size={20} className="mr-1" /> Voltar
-                </button>
-                <h2 className="text-2xl font-bold text-slate-900 mb-6">Cadastro de Cliente</h2>
-                <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome Completo</label>
-                        <input required type="text" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={name} onChange={e => setName(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                        <input required type="email" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={email} onChange={e => setEmail(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
-                        <input required type="password" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={pass} onChange={e => setPass(e.target.value)} />
-                    </div>
-                    <Button type="submit" fullWidth size="lg" className="mt-2">Criar Conta</Button>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// 4. Register Tech
-const RegisterTechView = ({ onRegister, onBack }: { onRegister: (user: DbUser) => void, onBack: () => void }) => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [pass, setPass] = useState('');
-    const [address, setAddress] = useState('');
-    const [bio, setBio] = useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onRegister({
-            id: `t-${Date.now()}`,
-            name,
-            email,
-            password: pass,
-            role: UserRole.TECHNICIAN,
-            address,
-            bio,
-            specialties: ['Geral'],
-            rating: 5.0,
-            distance: '0.5 km',
-            priceEstimate: 'Sob Consulta'
-        });
-    };
-
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 py-12">
-            <div className="w-full max-w-sm animate-fade-in">
-                <button onClick={onBack} className="mb-6 flex items-center text-slate-500 hover:text-slate-900 transition-colors">
-                    <ArrowLeft size={20} className="mr-1" /> Voltar
-                </button>
-                <h2 className="text-2xl font-bold text-slate-900 mb-6">Cadastro de Técnico</h2>
-                <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome Profissional</label>
-                        <input required type="text" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={name} onChange={e => setName(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                        <input required type="email" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={email} onChange={e => setEmail(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
-                        <input required type="password" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={pass} onChange={e => setPass(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Endereço (Bairro/Cidade)</label>
-                        <input required type="text" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={address} onChange={e => setAddress(e.target.value)} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Breve Biografia</label>
-                        <textarea required rows={3} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none transition-all" value={bio} onChange={e => setBio(e.target.value)} placeholder="Ex: Especialista em iPhone com 5 anos de experiência..." />
-                    </div>
-                    <Button type="submit" fullWidth size="lg" className="mt-2">Criar Conta Profissional</Button>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// 5. Settings View
-interface SettingsViewProps {
-    currentUser: User;
-    usersDb: DbUser[];
-    onUpdate: (data: Partial<User & Technician>) => void;
-    onBack: () => void;
-}
-
-const SettingsView = ({ currentUser, usersDb, onUpdate, onBack }: SettingsViewProps) => {
-    const isTech = currentUser.role === UserRole.TECHNICIAN;
-    const techData = isTech ? (usersDb.find(u => u.id === currentUser.id) as Technician) : null;
-
-    const [name, setName] = useState(currentUser.name);
-    const [bio, setBio] = useState(isTech ? (techData?.bio || '') : '');
-    const [address, setAddress] = useState(isTech ? (techData?.address || '') : '');
-    const [specialties, setSpecialties] = useState(isTech ? (techData?.specialties?.join(', ') || '') : '');
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleSave = () => {
-        const updates: any = { name };
-        if (isTech) {
-            updates.bio = bio;
-            updates.address = address;
-            updates.specialties = specialties.split(',').map(s => s.trim()).filter(Boolean);
-        }
-        onUpdate(updates);
-    };
-
-    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                onUpdate({ avatarUrl: reader.result as string });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-slate-50 pb-20 animate-fade-in">
-            <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-30 shadow-sm">
-                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                    <ArrowLeft size={24} />
-                </button>
-                <span className="font-semibold text-slate-900">Configurações</span>
-            </div>
-
-            <div className="max-w-md mx-auto p-6">
-                <div className="flex flex-col items-center mb-8">
-                    <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                        <div className="w-28 h-28 rounded-full overflow-hidden bg-slate-200 border-4 border-white shadow-lg">
-                            {currentUser.avatarUrl ? (
-                                <img src={currentUser.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
-                                    <UserIcon size={48} />
-                                </div>
-                            )}
-                        </div>
-                        <div className="absolute bottom-0 right-0 bg-primary-600 text-white p-2.5 rounded-full shadow-lg hover:bg-primary-700 transition-colors border-2 border-white">
-                            <Camera size={18} />
-                        </div>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleAvatarUpload}
-                        />
-                    </div>
-                    <p className="mt-3 text-sm text-slate-500">Toque na foto para alterar</p>
-                </div>
-
-                <div className="space-y-6 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
-                        <input type="text" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all" value={name} onChange={e => setName(e.target.value)} />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                        <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-slate-500 cursor-not-allowed">
-                            <Mail size={16} />
-                            <span>{currentUser.email}</span>
-                        </div>
-                    </div>
-
-                    {isTech && (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Endereço</label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-3 top-3 text-slate-400" size={18} />
-                                    <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 transition-all" value={address} onChange={e => setAddress(e.target.value)} />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Especialidades (separadas por vírgula)</label>
-                                <input type="text" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 transition-all" value={specialties} onChange={e => setSpecialties(e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Bio</label>
-                                <textarea rows={3} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none resize-none focus:ring-2 focus:ring-primary-500 transition-all" value={bio} onChange={e => setBio(e.target.value)} />
-                            </div>
-                        </>
-                    )}
-
-                    <Button fullWidth onClick={handleSave}>Salvar Alterações</Button>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 // 6. Client Home
 const ClientHome = ({ usersDb, onSelectTech }: { usersDb: DbUser[], onSelectTech: (id: string) => void }) => {
@@ -624,6 +253,11 @@ export default function App() {
         };
 
         setAppointments([mockInitialAppointment, mockCompletedAppointment]);
+
+        // Initialize LogService
+        logService.initialize().then(() => {
+            logService.info('APP_INITIALIZED', undefined, undefined, { version: '1.0.0' });
+        });
     }, []);
 
     useEffect(() => {
@@ -637,7 +271,7 @@ export default function App() {
 
     const handleLoginSuccess = (user: User) => {
         setCurrentUser(user);
-        setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_HOME' : 'TECH_DASHBOARD');
+        setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_HOME' : user.role === UserRole.ADMIN ? 'ADMIN_DASHBOARD' : 'TECH_DASHBOARD');
     };
 
     const handleRegister = (newUser: DbUser) => {
@@ -653,9 +287,30 @@ export default function App() {
     };
 
     const handleLogout = () => {
+        logService.info('USER_LOGOUT', currentUser?.id, currentUser?.email);
         setCurrentUser(null);
         setCurrentView('LOGIN');
-        setSelectedTech(null);
+        setNotification({ msg: 'Logout realizado com sucesso', type: 'success' });
+    };
+
+
+    const handleResolveDispute = (appointmentId: string, resolution: 'COMPLETED' | 'CANCELLED') => {
+        logService.warning(
+            'DISPUTE_RESOLVED',
+            currentUser?.id,
+            currentUser?.email,
+            { appointmentId, resolution }
+        );
+        setAppointments(prev => prev.map(apt => {
+            if (apt.id === appointmentId) {
+                return { ...apt, status: AppointmentStatus[resolution] };
+            }
+            return apt;
+        }));
+        setNotification({
+            msg: `Disputa resolvida: Serviço ${resolution === 'COMPLETED' ? 'Validado' : 'Cancelado'}`,
+            type: 'success'
+        });
     };
 
     const handleUpdateProfile = (updatedData: Partial<User & Technician>) => {
@@ -664,7 +319,16 @@ export default function App() {
         setCurrentUser(newSessionUser as User);
         setUsersDb(prev => prev.map(u => u.id === currentUser.id ? { ...u, ...updatedData } : u));
         setNotification({ msg: 'Perfil atualizado!', type: 'success' });
+        logService.info('PROFILE_UPDATED', currentUser.id, currentUser.email, { fields: Object.keys(updatedData) });
     };
+
+    useEffect(() => {
+        // Check for admin URL param
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('admin') === 'true') {
+            setCurrentView('ADMIN_LOGIN');
+        }
+    }, []);
 
     const handleConfirmBooking = (model: string, issue: string) => {
         if (!selectedTech || !currentUser) return;
@@ -709,6 +373,13 @@ export default function App() {
 
         setNotification({ msg: 'Agendamento confirmado com sucesso!', type: 'success' });
         setCurrentView('CLIENT_APPOINTMENTS');
+
+        logService.info(
+            'APPOINTMENT_CREATED',
+            currentUser.id,
+            currentUser.email,
+            { techId: selectedTech.id, date: bookingDate, time: bookingTime }
+        );
     };
 
     const handleCancelAppointment = (aptId: string, techId: string, date: string, time: string) => {
@@ -738,6 +409,13 @@ export default function App() {
         });
 
         setNotification({ msg: 'Agendamento cancelado.', type: 'success' });
+
+        logService.warning(
+            'APPOINTMENT_CANCELLED',
+            currentUser?.id,
+            currentUser?.email,
+            { appointmentId: aptId, techId, date, time }
+        );
     };
 
     const handleCompleteAppointment = (aptId: string) => {
@@ -745,6 +423,7 @@ export default function App() {
             a.id === aptId ? { ...a, status: AppointmentStatus.COMPLETED } : a
         ));
         setNotification({ msg: 'Atendimento concluído com sucesso!', type: 'success' });
+        logService.info('APPOINTMENT_COMPLETED', currentUser?.id, currentUser?.email, { appointmentId: aptId });
     };
 
     const handleReportIssue = (aptId: string, reason: string) => {
@@ -752,6 +431,7 @@ export default function App() {
             a.id === aptId ? { ...a, status: AppointmentStatus.DISPUTED, issueDescription: reason } : a
         ));
         setNotification({ msg: 'Problema reportado. Entraremos em contato.', type: 'info' });
+        logService.error('ISSUE_REPORTED', currentUser?.id, currentUser?.email, { appointmentId: aptId, reason });
     };
 
     const handleReportNoShow = (aptId: string) => {
@@ -759,6 +439,7 @@ export default function App() {
             a.id === aptId ? { ...a, status: AppointmentStatus.NO_SHOW } : a
         ));
         setNotification({ msg: 'No-show registrado.', type: 'info' });
+        logService.warning('NO_SHOW_REPORTED', currentUser?.id, currentUser?.email, { appointmentId: aptId });
     };
 
     const checkCanCancel = (dateStr: string, timeStr: string) => {
@@ -991,6 +672,15 @@ export default function App() {
                         onLoginSuccess={handleLoginSuccess}
                         onNavigateRegister={() => setCurrentView('REGISTER_SELECTION')}
                         onError={(msg) => setNotification({ msg, type: 'error' })}
+                        setCurrentUser={setCurrentUser}
+                        setCurrentView={setCurrentView}
+                        setNotification={setNotification}
+                    />
+                )}
+                {currentView === 'ADMIN_LOGIN' && (
+                    <AdminLoginView
+                        onLoginSuccess={handleLoginSuccess}
+                        onBack={() => setCurrentView('LOGIN')}
                     />
                 )}
                 {currentView === 'REGISTER_SELECTION' && (
@@ -1008,26 +698,18 @@ export default function App() {
                         onBack={() => setCurrentView('REGISTER_SELECTION')}
                     />
                 )}
-                {currentView === 'LOGIN' && (
-                    <LoginView
-                        usersDb={usersDb}
-                        onLoginSuccess={(user) => {
-                            setCurrentUser(user);
-                            setNotification({ msg: `Bem-vindo de volta, ${user.name}!`, type: 'success' });
-                            setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_HOME' : 'TECH_DASHBOARD');
-                        }}
-                        onNavigateRegister={() => setCurrentView('REGISTER')}
-                        onError={(msg) => setNotification({ msg, type: 'error' })}
-                        setCurrentUser={setCurrentUser}
-                        setCurrentView={setCurrentView}
-                        setNotification={setNotification}
-                    />
-                )}
+
+
                 {currentView === 'SETTINGS' && currentUser && (
                     <SettingsView
                         currentUser={currentUser}
                         usersDb={usersDb}
                         onUpdate={handleUpdateProfile}
+                        onDeleteRequest={() => {
+                            logService.critical('DATA_DELETION_REQUEST', currentUser.id, currentUser.email, { reason: 'LGPD user request' });
+                            alert('Sua solicitação foi recebida. Seus dados serão excluídos em até 15 dias conforme a LGPD.');
+                            handleLogout();
+                        }}
                         onBack={() => setCurrentView(currentUser.role === UserRole.CLIENT ? 'CLIENT_HOME' : 'TECH_DASHBOARD')}
                     />
                 )}
@@ -1257,7 +939,7 @@ export default function App() {
                 )}
 
                 {currentView === 'TECH_DASHBOARD' && currentUser && (
-                    <TechDashboardImpl
+                    <TechDashboard
                         currentUser={currentUser}
                         techSchedules={techSchedules}
                         setTechSchedules={setTechSchedules}
@@ -1276,8 +958,25 @@ export default function App() {
                     users={usersDb}
                     appointments={appointments}
                     reviews={reviews}
+                    logService={logService}
                     onLogout={handleLogout}
+                    onResolveDispute={handleResolveDispute}
                 />
+            )}
+
+            {currentView === 'TERMS' && <TermsView onBack={() => setCurrentView(currentUser ? 'SETTINGS' : 'LOGIN')} />}
+            {currentView === 'PRIVACY' && <PrivacyView onBack={() => setCurrentView(currentUser ? 'SETTINGS' : 'LOGIN')} />}
+
+            {/* Global Footer (visible on most pages) */}
+            {!['LOGIN', 'ADMIN_LOGIN', 'REGISTER_SELECTION', 'REGISTER_CLIENT', 'REGISTER_TECH'].includes(currentView) && (
+                <Footer onNavigate={setCurrentView} />
+            )}
+            {/* Special lightweight footer for auth pages if needed, or just omit */}
+            {['LOGIN', 'REGISTER_SELECTION'].includes(currentView) && (
+                <div className="py-4 text-center text-xs text-slate-400">
+                    <button onClick={() => setCurrentView('TERMS')} className="hover:underline mr-4">Termos de Uso</button>
+                    <button onClick={() => setCurrentView('PRIVACY')} className="hover:underline">Política de Privacidade</button>
+                </div>
             )}
 
             {currentUser?.role === UserRole.CLIENT && currentView !== 'SETTINGS' && (
@@ -1342,175 +1041,3 @@ export default function App() {
         </div>
     );
 }
-
-// Separated Tech Dashboard to keep file cleaner
-const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appointments, setAppointmentToCancel, checkCanCancel, reviews, onReplyReview, onCompleteAppointment }: any) => {
-    const [tab, setTab] = useState<'APPOINTMENTS' | 'AGENDA' | 'REVIEWS'>('APPOINTMENTS');
-    const techSchedule = techSchedules[currentUser.id] || [];
-    const techApts = appointments.filter((a: Appointment) => a.techId === currentUser.id && a.status !== 'CANCELLED');
-    const techReviews = reviews.filter((r: Review) => r.techId === currentUser.id);
-
-    const handleToggleSlotBlock = (date: string, time: string) => {
-        setTechSchedules((prev: any) => {
-            const ts = prev[currentUser.id] ? [...prev[currentUser.id]] : [];
-            const dayIndex = ts.findIndex((d: DaySchedule) => d.date === date);
-            if (dayIndex >= 0) {
-                const newSlots = ts[dayIndex].slots.map((slot: any) =>
-                    slot.time === time ? { ...slot, isBlocked: !slot.isBlocked } : slot
-                );
-                ts[dayIndex] = { ...ts[dayIndex], slots: newSlots };
-            }
-            return { ...prev, [currentUser.id]: ts };
-        });
-    };
-
-    return (
-        <div className="pb-24 px-4 pt-6 max-w-lg mx-auto min-h-screen">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Painel do Técnico</h2>
-                    <p className="text-slate-500 text-sm">Olá, {currentUser.name}</p>
-                </div>
-            </div>
-
-            <div className="flex p-1 bg-white border border-slate-200 rounded-xl mb-6">
-                <button
-                    onClick={() => setTab('APPOINTMENTS')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'APPOINTMENTS' ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-slate-500'}`}
-                >
-                    Próximos Serviços
-                </button>
-                <button
-                    onClick={() => setTab('AGENDA')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'AGENDA' ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-slate-500'}`}
-                >
-                    Gerenciar Agenda
-                </button>
-                <button
-                    onClick={() => setTab('REVIEWS')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'REVIEWS' ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-slate-500'}`}
-                >
-                    Avaliações
-                </button>
-            </div>
-
-            {tab === 'REVIEWS' ? (
-                <div className="space-y-4 animate-fade-in">
-                    <ReviewList
-                        reviews={techReviews}
-                        currentUserRole={UserRole.TECHNICIAN}
-                        onReply={(reviewId) => {
-                            const text = prompt('Digite sua resposta:');
-                            if (text) onReplyReview(reviewId, text);
-                        }}
-                    />
-                </div>
-            ) : tab === 'APPOINTMENTS' ? (
-                <div className="space-y-4 animate-fade-in">
-                    {techApts.length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-xl border border-slate-200 border-dashed">
-                            <div className="text-slate-400 mb-2">
-                                <Calendar size={32} className="mx-auto" />
-                            </div>
-                            <p className="text-slate-500 font-medium">Não há agendamentos ativos.</p>
-                        </div>
-                    ) : (
-                        techApts.map((apt: Appointment) => {
-                            const canCancel = checkCanCancel(apt.date, apt.time);
-                            return (
-                                <div key={apt.id} className="bg-white p-4 rounded-xl border-l-4 border-primary-500 shadow-sm hover:shadow-md transition-all">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="text-xs font-bold text-primary-600 uppercase mb-1 flex items-center gap-1">
-                                                <Clock size={12} />
-                                                {new Date(apt.date).toLocaleDateString('pt-BR')} • {apt.time}
-                                            </p>
-                                            <h3 className="font-bold text-slate-900">{apt.clientName}</h3>
-                                        </div>
-                                        <div className="bg-primary-50 p-2 rounded-lg">
-                                            <UserIcon size={20} className="text-primary-600" />
-                                        </div>
-                                    </div>
-                                    <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-xs text-slate-400">Aparelho</p>
-                                            <p className="text-sm font-medium text-slate-700">{apt.deviceModel}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-400">Problema</p>
-                                            <p className="text-sm font-medium text-slate-700 truncate" title={apt.issueDescription}>{apt.issueDescription}</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 flex justify-end gap-2">
-                                        {apt.status === AppointmentStatus.CONFIRMED && (
-                                            <Button
-                                                size="sm"
-                                                onClick={() => {
-                                                    if (confirm('Confirmar conclusão do atendimento?')) {
-                                                        onCompleteAppointment(apt.id);
-                                                    }
-                                                }}
-                                            >
-                                                Concluir Atendimento
-                                            </Button>
-                                        )}
-                                        <Button
-                                            size="sm"
-                                            variant="danger"
-                                            disabled={!canCancel}
-                                            className={!canCancel ? 'opacity-50 cursor-not-allowed bg-slate-400 hover:bg-slate-400 focus:ring-0' : ''}
-                                            onClick={() => setAppointmentToCancel(apt)}
-                                        >
-                                            {canCancel ? 'Cancelar' : 'Cancelamento Bloqueado (<24h)'}
-                                        </Button>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-            ) : (
-                <div className="space-y-6 animate-fade-in">
-                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
-                        <AlertCircle className="text-blue-600 shrink-0" size={20} />
-                        <p className="text-sm text-blue-800">
-                            Toque nos horários para bloquear ou desbloquear sua disponibilidade.
-                        </p>
-                    </div>
-
-                    {techSchedule.map((day: DaySchedule) => (
-                        <div key={day.date}>
-                            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                <Calendar size={16} className="text-slate-400" />
-                                {new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric' })}
-                            </h4>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                {day.slots.map((slot: any) => (
-                                    <div key={slot.id} className="relative group">
-                                        <button
-                                            disabled={slot.isBooked}
-                                            onClick={() => handleToggleSlotBlock(day.date, slot.time)}
-                                            className={`
-                                                w-full py-2 px-1 rounded-lg text-sm font-medium border transition-all duration-200 active:scale-95 transform relative overflow-hidden
-                                                ${slot.isBooked
-                                                    ? 'bg-green-100 border-green-200 text-green-800 opacity-60 cursor-not-allowed'
-                                                    : slot.isBlocked
-                                                        ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 shadow-inner'
-                                                        : 'bg-white border-slate-200 text-slate-600 hover:border-primary-400 hover:text-primary-600 hover:shadow-sm'
-                                                }
-                                            `}
-                                        >
-                                            {slot.time}
-                                            {slot.isBooked && <span className="block text-[10px] font-bold">AGENDADO</span>}
-                                            {slot.isBlocked && !slot.isBooked && <span className="block text-[10px]">BLOQUEADO</span>}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
