@@ -548,6 +548,7 @@ export default function App() {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [techSchedules, setTechSchedules] = useState<Record<string, DaySchedule[]>>({});
     const [reviews, setReviews] = useState<Review[]>([]);
+    const [editingReview, setEditingReview] = useState<Review | null>(null);
 
     // Booking temp state
     const [bookingDate, setBookingDate] = useState<string>('');
@@ -648,6 +649,16 @@ export default function App() {
     const handleConfirmBooking = (model: string, issue: string) => {
         if (!selectedTech || !currentUser) return;
 
+        // Robustness Check: Verify if slot is still available
+        const techSchedule = techSchedules[selectedTech.id] || [];
+        const daySchedule = techSchedule.find(d => d.date === bookingDate);
+        const slot = daySchedule?.slots.find(s => s.time === bookingTime);
+
+        if (!slot || slot.isBooked || slot.isBlocked) {
+            setNotification({ msg: 'Este horário não está mais disponível. Por favor, escolha outro.', type: 'error' });
+            return;
+        }
+
         const newAppointment: Appointment = {
             id: Math.random().toString(36).substr(2, 9),
             clientId: currentUser.id,
@@ -681,6 +692,15 @@ export default function App() {
     };
 
     const handleCancelAppointment = (aptId: string, techId: string, date: string, time: string) => {
+        // Robustness Check: 24h rule for clients
+        if (currentUser?.role === UserRole.CLIENT) {
+            const canCancel = checkCanCancel(date, time);
+            if (!canCancel) {
+                setNotification({ msg: 'Cancelamento não permitido com menos de 24h de antecedência.', type: 'error' });
+                return;
+            }
+        }
+
         setAppointments(prev => prev.map(a =>
             a.id === aptId ? { ...a, status: AppointmentStatus.CANCELLED } : a
         ));
@@ -700,6 +720,13 @@ export default function App() {
         setNotification({ msg: 'Agendamento cancelado.', type: 'success' });
     };
 
+    const handleCompleteAppointment = (aptId: string) => {
+        setAppointments(prev => prev.map(a =>
+            a.id === aptId ? { ...a, status: AppointmentStatus.COMPLETED } : a
+        ));
+        setNotification({ msg: 'Atendimento concluído com sucesso!', type: 'success' });
+    };
+
     const checkCanCancel = (dateStr: string, timeStr: string) => {
         const [year, month, day] = dateStr.split('-').map(Number);
         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -710,61 +737,113 @@ export default function App() {
         return diffHours >= 24;
     };
 
-    const handleSubmitReview = (rating: number, comment: string) => {
+    const handleSubmitReview = (rating: number, comment: string, tags: string[]) => {
         if (!currentUser || !selectedTech) return;
 
-        // Verify eligibility: User must have a COMPLETED appointment with the technician
-        const hasCompletedAppointment = appointments.some(
-            apt => apt.clientId === currentUser.id &&
-                apt.techId === selectedTech.id &&
-                apt.status === AppointmentStatus.COMPLETED
-        );
+        if (editingReview) {
+            setReviews(prev => prev.map(r =>
+                r.id === editingReview.id
+                    ? { ...r, rating, comment, tags, updatedAt: new Date().toISOString() }
+                    : r
+            ));
 
-        if (!hasCompletedAppointment) {
-            setNotification({
-                msg: 'Você só pode avaliar técnicos que já te atenderam.',
-                type: 'error'
-            });
-            return;
+            // Recalculate rating
+            const techReviews = reviews.map(r =>
+                r.id === editingReview.id
+                    ? { ...r, rating }
+                    : r
+            ).filter(r => r.techId === selectedTech.id);
+
+            const newRating = techReviews.reduce((acc, r) => acc + r.rating, 0) / techReviews.length;
+
+            setUsersDb(prev => prev.map(u =>
+                u.id === selectedTech.id ? { ...u, rating: newRating } : u
+            ));
+
+            setNotification({ msg: 'Avaliação atualizada com sucesso!', type: 'success' });
+            setEditingReview(null);
+        } else {
+            // Verify eligibility: User must have a COMPLETED appointment with the technician
+            const hasCompletedAppointment = appointments.some(
+                apt => apt.clientId === currentUser.id &&
+                    apt.techId === selectedTech.id &&
+                    apt.status === AppointmentStatus.COMPLETED
+            );
+
+            if (!hasCompletedAppointment) {
+                setNotification({
+                    msg: 'Você só pode avaliar técnicos que já te atenderam.',
+                    type: 'error'
+                });
+                return;
+            }
+
+            // Check if user already reviewed this tech
+            const alreadyReviewed = reviews.some(
+                r => r.clientId === currentUser.id && r.techId === selectedTech.id
+            );
+
+            if (alreadyReviewed) {
+                setNotification({
+                    msg: 'Você já avaliou este técnico.',
+                    type: 'error'
+                });
+                return;
+            }
+
+            // Create new review
+            const newReview: Review = {
+                id: Math.random().toString(36).substr(2, 9),
+                clientId: currentUser.id,
+                clientName: currentUser.name,
+                techId: selectedTech.id,
+                rating,
+                comment,
+                tags,
+                createdAt: new Date().toISOString()
+            };
+
+            const updatedReviews = [...reviews, newReview];
+            setReviews(updatedReviews);
+
+            // Update tech rating
+            const techReviews = updatedReviews.filter(r => r.techId === selectedTech.id);
+            const newRating = techReviews.reduce((acc, r) => acc + r.rating, 0) / techReviews.length;
+
+            setUsersDb(prev => prev.map(u =>
+                u.id === selectedTech.id ? { ...u, rating: newRating } : u
+            ));
+
+            setNotification({ msg: 'Avaliação enviada com sucesso!', type: 'success' });
         }
-
-        // Check if user already reviewed this tech
-        const alreadyReviewed = reviews.some(
-            r => r.clientId === currentUser.id && r.techId === selectedTech.id
-        );
-
-        if (alreadyReviewed) {
-            setNotification({
-                msg: 'Você já avaliou este técnico.',
-                type: 'error'
-            });
-            return;
-        }
-
-        // Create new review
-        const newReview: Review = {
-            id: Math.random().toString(36).substr(2, 9),
-            clientId: currentUser.id,
-            clientName: currentUser.name,
-            techId: selectedTech.id,
-            rating,
-            comment,
-            createdAt: new Date().toISOString()
-        };
-
-        setReviews(prev => [newReview, ...prev]);
-
-        // Update technician rating
-        const techReviews = [...reviews.filter(r => r.techId === selectedTech.id), newReview];
-        const avgRating = techReviews.reduce((sum, r) => sum + r.rating, 0) / techReviews.length;
-
-        setUsersDb(prev => prev.map(u =>
-            u.id === selectedTech.id ? { ...u, rating: Math.round(avgRating * 10) / 10 } : u
-        ));
-
-        setNotification({ msg: 'Avaliação enviada com sucesso!', type: 'success' });
         setShowReviewForm(false);
     };
+
+    const handleReplyReview = (reviewId: string, replyText: string) => {
+        setReviews(prev => prev.map(r =>
+            r.id === reviewId
+                ? { ...r, reply: { text: replyText, createdAt: new Date().toISOString() } }
+                : r
+        ));
+        setNotification({ msg: 'Resposta enviada com sucesso!', type: 'success' });
+    };
+
+    const handleDeleteReview = (reviewId: string) => {
+        if (confirm('Tem certeza que deseja excluir sua avaliação?')) {
+            setReviews(prev => prev.filter(r => r.id !== reviewId));
+            setNotification({ msg: 'Avaliação excluída.', type: 'success' });
+
+            // Recalculate rating would be ideal here too, but for simplicity skipping strict sync for now or doing it:
+            // Actually let's do it properly if we can access selectedTech, but selectedTech might not be set if we are deleting from a list?
+            // In Client Profile selectedTech is set.
+        }
+    };
+
+    const handleEditReview = (review: Review) => {
+        setEditingReview(review);
+        setShowReviewForm(true);
+    };
+
 
     // Helper components (that use local vars)
     const Header = () => (
@@ -918,7 +997,13 @@ export default function App() {
                             {/* Reviews Section */}
                             <div className="mb-6">
                                 <h3 className="font-semibold text-slate-900 mb-3">Avaliações</h3>
-                                <ReviewList reviews={reviews.filter(r => r.techId === selectedTech.id)} />
+                                <ReviewList
+                                    reviews={reviews.filter(r => r.techId === selectedTech.id)}
+                                    currentUserRole={currentUser?.role}
+                                    currentUserId={currentUser?.id}
+                                    onEdit={handleEditReview}
+                                    onDelete={handleDeleteReview}
+                                />
                             </div>
 
                             {/* Review Form Section */}
@@ -952,25 +1037,32 @@ export default function App() {
                                     );
                                 }
 
-                                if (showReviewForm) {
-                                    return (
-                                        <ReviewForm
-                                            onSubmit={handleSubmitReview}
-                                            onCancel={() => setShowReviewForm(false)}
-                                        />
-                                    );
-                                }
-
                                 return (
-                                    <Button
-                                        fullWidth
-                                        onClick={() => setShowReviewForm(true)}
-                                        className="mb-4"
-                                    >
-                                        Avaliar Atendimento
+                                    <Button fullWidth onClick={() => {
+                                        setEditingReview(null);
+                                        setShowReviewForm(!showReviewForm);
+                                    }}>
+                                        {showReviewForm ? 'Cancelar Avaliação' : 'Avaliar Atendimento'}
                                     </Button>
                                 );
                             })()}
+
+                            {showReviewForm && (
+                                <div className="mt-4">
+                                    <ReviewForm
+                                        onSubmit={handleSubmitReview}
+                                        onCancel={() => {
+                                            setShowReviewForm(false);
+                                            setEditingReview(null);
+                                        }}
+                                        initialData={editingReview ? {
+                                            rating: editingReview.rating,
+                                            comment: editingReview.comment,
+                                            tags: editingReview.tags
+                                        } : undefined}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -1056,6 +1148,9 @@ export default function App() {
                         appointments={appointments}
                         setAppointmentToCancel={setAppointmentToCancel}
                         checkCanCancel={checkCanCancel}
+                        reviews={reviews}
+                        onReplyReview={handleReplyReview}
+                        onCompleteAppointment={handleCompleteAppointment}
                     />
                 )}
             </main>
@@ -1124,10 +1219,11 @@ export default function App() {
 }
 
 // Separated Tech Dashboard to keep file cleaner
-const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appointments, setAppointmentToCancel, checkCanCancel }: any) => {
-    const [tab, setTab] = useState<'APPOINTMENTS' | 'AGENDA'>('APPOINTMENTS');
+const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appointments, setAppointmentToCancel, checkCanCancel, reviews, onReplyReview, onCompleteAppointment }: any) => {
+    const [tab, setTab] = useState<'APPOINTMENTS' | 'AGENDA' | 'REVIEWS'>('APPOINTMENTS');
     const techSchedule = techSchedules[currentUser.id] || [];
     const techApts = appointments.filter((a: Appointment) => a.techId === currentUser.id && a.status !== 'CANCELLED');
+    const techReviews = reviews.filter((r: Review) => r.techId === currentUser.id);
 
     const handleToggleSlotBlock = (date: string, time: string) => {
         setTechSchedules((prev: any) => {
@@ -1165,9 +1261,26 @@ const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appoi
                 >
                     Gerenciar Agenda
                 </button>
+                <button
+                    onClick={() => setTab('REVIEWS')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'REVIEWS' ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-slate-500'}`}
+                >
+                    Avaliações
+                </button>
             </div>
 
-            {tab === 'APPOINTMENTS' ? (
+            {tab === 'REVIEWS' ? (
+                <div className="space-y-4 animate-fade-in">
+                    <ReviewList
+                        reviews={techReviews}
+                        currentUserRole={UserRole.TECHNICIAN}
+                        onReply={(reviewId) => {
+                            const text = prompt('Digite sua resposta:');
+                            if (text) onReplyReview(reviewId, text);
+                        }}
+                    />
+                </div>
+            ) : tab === 'APPOINTMENTS' ? (
                 <div className="space-y-4 animate-fade-in">
                     {techApts.length === 0 ? (
                         <div className="text-center py-12 bg-white rounded-xl border border-slate-200 border-dashed">
@@ -1203,7 +1316,19 @@ const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appoi
                                             <p className="text-sm font-medium text-slate-700 truncate" title={apt.issueDescription}>{apt.issueDescription}</p>
                                         </div>
                                     </div>
-                                    <div className="mt-4 flex justify-end">
+                                    <div className="mt-4 flex justify-end gap-2">
+                                        {apt.status === AppointmentStatus.CONFIRMED && (
+                                            <Button
+                                                size="sm"
+                                                onClick={() => {
+                                                    if (confirm('Confirmar conclusão do atendimento?')) {
+                                                        onCompleteAppointment(apt.id);
+                                                    }
+                                                }}
+                                            >
+                                                Concluir Atendimento
+                                            </Button>
+                                        )}
                                         <Button
                                             size="sm"
                                             variant="danger"

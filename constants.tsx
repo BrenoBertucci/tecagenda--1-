@@ -46,12 +46,12 @@ export const MOCK_TECHS: Technician[] = [
 export const generateMockSchedule = (daysOffset: number = 3): DaySchedule[] => {
     const schedules: DaySchedule[] = [];
     const today = new Date();
-    
+
     for (let i = 0; i < daysOffset; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
         const dateStr = date.toISOString().split('T')[0];
-        
+
         schedules.push({
             date: dateStr,
             slots: [
@@ -66,3 +66,14 @@ export const generateMockSchedule = (daysOffset: number = 3): DaySchedule[] => {
     }
     return schedules;
 };
+
+export const SERVICE_TAGS = [
+    'Rápido',
+    'Preço Justo',
+    'Atencioso',
+    'Profissional',
+    'Pontual',
+    'Serviço de Qualidade',
+    'Honesto',
+    'Ambiente Agradável'
+];

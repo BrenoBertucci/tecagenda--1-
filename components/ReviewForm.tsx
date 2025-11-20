@@ -1,16 +1,31 @@
-import React, { useState } from 'react';
-import { Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, Tag } from 'lucide-react';
 import { Button } from './Button';
+import { SERVICE_TAGS } from '../constants';
 
 interface ReviewFormProps {
-    onSubmit: (rating: number, comment: string) => void;
+    onSubmit: (rating: number, comment: string, tags: string[]) => void;
     onCancel: () => void;
+    initialData?: {
+        rating: number;
+        comment: string;
+        tags?: string[];
+    };
 }
 
-export const ReviewForm = ({ onSubmit, onCancel }: ReviewFormProps) => {
+export const ReviewForm = ({ onSubmit, onCancel, initialData }: ReviewFormProps) => {
     const [rating, setRating] = useState(0);
     const [hoveredRating, setHoveredRating] = useState(0);
     const [comment, setComment] = useState('');
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (initialData) {
+            setRating(initialData.rating);
+            setComment(initialData.comment);
+            setSelectedTags(initialData.tags || []);
+        }
+    }, [initialData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -18,19 +33,29 @@ export const ReviewForm = ({ onSubmit, onCancel }: ReviewFormProps) => {
             alert('Por favor, selecione uma avaliação de 1 a 5 estrelas.');
             return;
         }
-        onSubmit(rating, comment);
+        onSubmit(rating, comment, selectedTags);
+    };
+
+    const toggleTag = (tag: string) => {
+        setSelectedTags(prev =>
+            prev.includes(tag)
+                ? prev.filter(t => t !== tag)
+                : [...prev, tag]
+        );
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Avaliar Atendimento</h3>
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">
+                {initialData ? 'Editar Avaliação' : 'Avaliar Atendimento'}
+            </h3>
 
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                         Classificação
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mb-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                             <button
                                 key={star}
@@ -38,7 +63,7 @@ export const ReviewForm = ({ onSubmit, onCancel }: ReviewFormProps) => {
                                 onClick={() => setRating(star)}
                                 onMouseEnter={() => setHoveredRating(star)}
                                 onMouseLeave={() => setHoveredRating(0)}
-                                className="transition-transform hover:scale-110"
+                                className="transition-transform hover:scale-110 focus:outline-none"
                             >
                                 <Star
                                     size={32}
@@ -51,7 +76,7 @@ export const ReviewForm = ({ onSubmit, onCancel }: ReviewFormProps) => {
                         ))}
                     </div>
                     {rating > 0 && (
-                        <p className="text-sm text-slate-500 mt-2">
+                        <p className="text-sm font-medium text-slate-600">
                             {rating === 1 && 'Muito ruim'}
                             {rating === 2 && 'Ruim'}
                             {rating === 3 && 'Regular'}
@@ -59,6 +84,30 @@ export const ReviewForm = ({ onSubmit, onCancel }: ReviewFormProps) => {
                             {rating === 5 && 'Excelente'}
                         </p>
                     )}
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Pontos Fortes (Opcional)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {SERVICE_TAGS.map(tag => (
+                            <button
+                                key={tag}
+                                type="button"
+                                onClick={() => toggleTag(tag)}
+                                className={`
+                                    px-3 py-1.5 rounded-full text-sm font-medium transition-all border
+                                    ${selectedTags.includes(tag)
+                                        ? 'bg-primary-50 border-primary-200 text-primary-700 shadow-sm'
+                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    }
+                                `}
+                            >
+                                {tag}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 <div>
@@ -74,12 +123,12 @@ export const ReviewForm = ({ onSubmit, onCancel }: ReviewFormProps) => {
                     />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-2">
                     <Button type="button" variant="secondary" onClick={onCancel} fullWidth>
                         Cancelar
                     </Button>
                     <Button type="submit" fullWidth>
-                        Enviar Avaliação
+                        {initialData ? 'Salvar Alterações' : 'Enviar Avaliação'}
                     </Button>
                 </div>
             </form>
