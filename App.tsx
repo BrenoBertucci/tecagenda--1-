@@ -1,28 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    User, UserRole, Technician, Appointment, 
-    AppointmentStatus, DaySchedule
+import {
+    User, UserRole, Technician, Appointment,
+    AppointmentStatus, DaySchedule, Review
 } from './types';
 import { MOCK_TECHS, generateMockSchedule } from './constants';
 import { Button } from './components/Button';
-import { 
-    Smartphone, MapPin, Star, Calendar, Clock, 
-    User as UserIcon, Search, LogOut, ChevronLeft, 
+import { ReviewForm } from './components/ReviewForm';
+import { ReviewList } from './components/ReviewList';
+import {
+    Smartphone, MapPin, Star, Calendar, Clock,
+    User as UserIcon, Search, LogOut, ChevronLeft,
     CheckCircle, XCircle, AlertCircle, Settings, History,
     Camera, Mail, Lock, ArrowLeft
 } from 'lucide-react';
 
 // --- GLOBAL STATE TYPES ---
 
-type ViewState = 
-    | 'LOGIN' 
+type ViewState =
+    | 'LOGIN'
     | 'REGISTER_SELECTION'
     | 'REGISTER_CLIENT'
     | 'REGISTER_TECH'
     | 'SETTINGS'
-    | 'CLIENT_HOME' 
-    | 'CLIENT_TECH_PROFILE' 
-    | 'CLIENT_BOOKING' 
+    | 'CLIENT_HOME'
+    | 'CLIENT_TECH_PROFILE'
+    | 'CLIENT_BOOKING'
     | 'CLIENT_APPOINTMENTS'
     | 'TECH_DASHBOARD';
 
@@ -53,7 +55,7 @@ const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError }: Log
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const user = usersDb.find(u => u.email === email && u.password === pass);
-        
+
         if (user) {
             const sessionUser: User = {
                 id: user.id,
@@ -84,7 +86,7 @@ const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError }: Log
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <div className="relative">
                             <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
-                            <input 
+                            <input
                                 type="email"
                                 required
                                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all"
@@ -98,7 +100,7 @@ const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError }: Log
                         <label className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
                         <div className="relative">
                             <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
-                            <input 
+                            <input
                                 type="password"
                                 required
                                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all"
@@ -113,7 +115,7 @@ const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError }: Log
 
                     <div className="pt-4 text-center">
                         <p className="text-sm text-slate-600">Não tem uma conta?</p>
-                        <button 
+                        <button
                             type="button"
                             onClick={onNavigateRegister}
                             className="text-primary-600 font-semibold hover:underline mt-1"
@@ -122,16 +124,16 @@ const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError }: Log
                         </button>
                     </div>
                 </form>
-                
+
                 <div className="mt-8 text-center">
                     <p className="text-xs text-slate-400 bg-slate-100 p-3 rounded-lg inline-block border border-slate-200">
                         <span className="font-semibold block mb-1">Dica de Teste (Dados Mockados):</span>
                         <div className="flex justify-between gap-4 text-left">
                             <div>
-                                <strong>Cliente:</strong><br/>maria@email.com<br/>123
+                                <strong>Cliente:</strong><br />maria@email.com<br />123
                             </div>
                             <div>
-                                <strong>Técnico:</strong><br/>carlos@tecagenda.com<br/>123
+                                <strong>Técnico:</strong><br />carlos@tecagenda.com<br />123
                             </div>
                         </div>
                     </p>
@@ -144,15 +146,15 @@ const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError }: Log
 // 2. Register Selection
 const RegisterSelectionView = ({ onNavigate }: { onNavigate: (view: ViewState) => void }) => (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
-         <div className="w-full max-w-sm animate-fade-in">
+        <div className="w-full max-w-sm animate-fade-in">
             <button onClick={() => onNavigate('LOGIN')} className="mb-6 flex items-center text-slate-500 hover:text-slate-900 transition-colors">
-                <ArrowLeft size={20} className="mr-1"/> Voltar
+                <ArrowLeft size={20} className="mr-1" /> Voltar
             </button>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Criar Conta</h2>
             <p className="text-slate-500 mb-8">Como você deseja usar o TecAgenda?</p>
 
             <div className="space-y-4">
-                <button 
+                <button
                     onClick={() => onNavigate('REGISTER_CLIENT')}
                     className="w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-primary-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
                 >
@@ -165,7 +167,7 @@ const RegisterSelectionView = ({ onNavigate }: { onNavigate: (view: ViewState) =
                     </div>
                 </button>
 
-                <button 
+                <button
                     onClick={() => onNavigate('REGISTER_TECH')}
                     className="w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-primary-500 hover:shadow-md transition-all text-left flex items-center gap-4 group"
                 >
@@ -203,7 +205,7 @@ const RegisterClientView = ({ onRegister, onBack }: { onRegister: (user: DbUser)
         <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
             <div className="w-full max-w-sm animate-fade-in">
                 <button onClick={onBack} className="mb-6 flex items-center text-slate-500 hover:text-slate-900 transition-colors">
-                    <ArrowLeft size={20} className="mr-1"/> Voltar
+                    <ArrowLeft size={20} className="mr-1" /> Voltar
                 </button>
                 <h2 className="text-2xl font-bold text-slate-900 mb-6">Cadastro de Cliente</h2>
                 <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
@@ -255,7 +257,7 @@ const RegisterTechView = ({ onRegister, onBack }: { onRegister: (user: DbUser) =
         <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 py-12">
             <div className="w-full max-w-sm animate-fade-in">
                 <button onClick={onBack} className="mb-6 flex items-center text-slate-500 hover:text-slate-900 transition-colors">
-                    <ArrowLeft size={20} className="mr-1"/> Voltar
+                    <ArrowLeft size={20} className="mr-1" /> Voltar
                 </button>
                 <h2 className="text-2xl font-bold text-slate-900 mb-6">Cadastro de Técnico</h2>
                 <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
@@ -297,7 +299,7 @@ interface SettingsViewProps {
 const SettingsView = ({ currentUser, usersDb, onUpdate, onBack }: SettingsViewProps) => {
     const isTech = currentUser.role === UserRole.TECHNICIAN;
     const techData = isTech ? (usersDb.find(u => u.id === currentUser.id) as Technician) : null;
-    
+
     const [name, setName] = useState(currentUser.name);
     const [bio, setBio] = useState(isTech ? (techData?.bio || '') : '');
     const [address, setAddress] = useState(isTech ? (techData?.address || '') : '');
@@ -349,11 +351,11 @@ const SettingsView = ({ currentUser, usersDb, onUpdate, onBack }: SettingsViewPr
                         <div className="absolute bottom-0 right-0 bg-primary-600 text-white p-2.5 rounded-full shadow-lg hover:bg-primary-700 transition-colors border-2 border-white">
                             <Camera size={18} />
                         </div>
-                        <input 
-                            type="file" 
-                            ref={fileInputRef} 
-                            className="hidden" 
-                            accept="image/*" 
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
                             onChange={handleAvatarUpload}
                         />
                     </div>
@@ -365,7 +367,7 @@ const SettingsView = ({ currentUser, usersDb, onUpdate, onBack }: SettingsViewPr
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nome</label>
                         <input type="text" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all" value={name} onChange={e => setName(e.target.value)} />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-slate-500 cursor-not-allowed">
@@ -404,18 +406,18 @@ const SettingsView = ({ currentUser, usersDb, onUpdate, onBack }: SettingsViewPr
 // 6. Client Home
 const ClientHome = ({ usersDb, onSelectTech }: { usersDb: DbUser[], onSelectTech: (id: string) => void }) => {
     const techs = usersDb.filter(u => u.role === UserRole.TECHNICIAN) as Technician[];
-    
+
     return (
         <div className="pb-24 px-4 pt-6 max-w-md mx-auto">
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-slate-900">Encontre um Técnico</h2>
                 <p className="text-slate-500">Profissionais qualificados próximos a você</p>
             </div>
-            
+
             <div className="relative mb-6">
-                <input 
-                    type="text" 
-                    placeholder="Buscar por especialidade..." 
+                <input
+                    type="text"
+                    placeholder="Buscar por especialidade..."
                     className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm outline-none transition-all"
                 />
                 <Search className="absolute left-3 top-3.5 text-slate-400" size={20} />
@@ -445,7 +447,7 @@ const ClientHome = ({ usersDb, onSelectTech }: { usersDb: DbUser[], onSelectTech
                                     {tech.distance || '? km'} • {tech.address || 'Endereço n/d'}
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                    {tech.specialties?.slice(0,2).map((spec, i) => (
+                                    {tech.specialties?.slice(0, 2).map((spec, i) => (
                                         <span key={i} className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-medium">
                                             {spec}
                                         </span>
@@ -486,7 +488,7 @@ const ClientBooking = ({ date, time, onConfirm, onBack }: ClientBookingProps) =>
                 </button>
                 <span className="font-semibold text-slate-900">Confirmar Agendamento</span>
             </div>
-            
+
             <div className="p-6 flex-1">
                 <div className="bg-primary-50 p-4 rounded-xl mb-6 flex gap-4 items-center">
                     <div className="bg-primary-100 p-3 rounded-full">
@@ -503,9 +505,9 @@ const ClientBooking = ({ date, time, onConfirm, onBack }: ClientBookingProps) =>
                 <form onSubmit={(e) => { e.preventDefault(); onConfirm(deviceModel, issueDesc); }} className="space-y-5">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Modelo do Aparelho</label>
-                        <input 
+                        <input
                             required
-                            type="text" 
+                            type="text"
                             value={deviceModel}
                             onChange={(e) => setDeviceModel(e.target.value)}
                             placeholder="Ex: iPhone 13 Pro"
@@ -514,7 +516,7 @@ const ClientBooking = ({ date, time, onConfirm, onBack }: ClientBookingProps) =>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Descrição do Defeito</label>
-                        <textarea 
+                        <textarea
                             required
                             rows={4}
                             value={issueDesc}
@@ -525,7 +527,7 @@ const ClientBooking = ({ date, time, onConfirm, onBack }: ClientBookingProps) =>
                     </div>
 
                     <div className="pt-4">
-                         <Button type="submit" fullWidth size="lg">
+                        <Button type="submit" fullWidth size="lg">
                             Confirmar Agendamento
                         </Button>
                     </div>
@@ -545,12 +547,14 @@ export default function App() {
     const [selectedTech, setSelectedTech] = useState<Technician | null>(null);
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [techSchedules, setTechSchedules] = useState<Record<string, DaySchedule[]>>({});
-    
+    const [reviews, setReviews] = useState<Review[]>([]);
+
     // Booking temp state
     const [bookingDate, setBookingDate] = useState<string>('');
     const [bookingTime, setBookingTime] = useState<string>('');
-    const [notification, setNotification] = useState<{msg: string, type: 'success' | 'error'} | null>(null);
+    const [notification, setNotification] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
     const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
+    const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
 
     // Initialize Data
     useEffect(() => {
@@ -567,20 +571,38 @@ export default function App() {
         setTechSchedules(initialSchedules);
 
         const todayStr = new Date().toISOString().split('T')[0];
+        const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
         const mockInitialAppointment: Appointment = {
             id: 'mock-init-1',
-            clientId: 'c99', 
+            clientId: 'c99',
             clientName: 'Maria Souza',
-            techId: 't1', 
+            techId: 't1',
             techName: 'Carlos Silva',
             date: todayStr,
-            time: '10:00', 
+            time: '10:00',
             deviceModel: 'Samsung S21',
             issueDescription: 'Tela piscando e travando durante uso.',
             status: AppointmentStatus.CONFIRMED,
             createdAt: new Date().toISOString()
         };
-        setAppointments([mockInitialAppointment]);
+
+        // Add a completed appointment for testing reviews
+        const mockCompletedAppointment: Appointment = {
+            id: 'mock-completed-1',
+            clientId: 'c99',
+            clientName: 'Maria Souza',
+            techId: 't2',
+            techName: 'Ana Oliveira',
+            date: yesterdayStr,
+            time: '14:00',
+            deviceModel: 'iPhone 12',
+            issueDescription: 'Bateria viciada.',
+            status: AppointmentStatus.COMPLETED,
+            createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+        };
+
+        setAppointments([mockInitialAppointment, mockCompletedAppointment]);
     }, []);
 
     useEffect(() => {
@@ -641,12 +663,12 @@ export default function App() {
         };
 
         setAppointments(prev => [newAppointment, ...prev]);
-        
+
         setTechSchedules(prev => {
             const techSchedule = prev[selectedTech.id] ? [...prev[selectedTech.id]] : [];
             const dayIndex = techSchedule.findIndex(d => d.date === bookingDate);
             if (dayIndex >= 0) {
-                const newSlots = techSchedule[dayIndex].slots.map(slot => 
+                const newSlots = techSchedule[dayIndex].slots.map(slot =>
                     slot.time === bookingTime ? { ...slot, isBooked: true } : slot
                 );
                 techSchedule[dayIndex] = { ...techSchedule[dayIndex], slots: newSlots };
@@ -659,7 +681,7 @@ export default function App() {
     };
 
     const handleCancelAppointment = (aptId: string, techId: string, date: string, time: string) => {
-        setAppointments(prev => prev.map(a => 
+        setAppointments(prev => prev.map(a =>
             a.id === aptId ? { ...a, status: AppointmentStatus.CANCELLED } : a
         ));
 
@@ -667,14 +689,14 @@ export default function App() {
             const techSchedule = prev[techId] ? [...prev[techId]] : [];
             const dayIndex = techSchedule.findIndex(d => d.date === date);
             if (dayIndex >= 0) {
-                const newSlots = techSchedule[dayIndex].slots.map(slot => 
+                const newSlots = techSchedule[dayIndex].slots.map(slot =>
                     slot.time === time ? { ...slot, isBooked: false } : slot
                 );
                 techSchedule[dayIndex] = { ...techSchedule[dayIndex], slots: newSlots };
             }
             return { ...prev, [techId]: techSchedule };
         });
-        
+
         setNotification({ msg: 'Agendamento cancelado.', type: 'success' });
     };
 
@@ -688,6 +710,62 @@ export default function App() {
         return diffHours >= 24;
     };
 
+    const handleSubmitReview = (rating: number, comment: string) => {
+        if (!currentUser || !selectedTech) return;
+
+        // Verify eligibility: User must have a COMPLETED appointment with the technician
+        const hasCompletedAppointment = appointments.some(
+            apt => apt.clientId === currentUser.id &&
+                apt.techId === selectedTech.id &&
+                apt.status === AppointmentStatus.COMPLETED
+        );
+
+        if (!hasCompletedAppointment) {
+            setNotification({
+                msg: 'Você só pode avaliar técnicos que já te atenderam.',
+                type: 'error'
+            });
+            return;
+        }
+
+        // Check if user already reviewed this tech
+        const alreadyReviewed = reviews.some(
+            r => r.clientId === currentUser.id && r.techId === selectedTech.id
+        );
+
+        if (alreadyReviewed) {
+            setNotification({
+                msg: 'Você já avaliou este técnico.',
+                type: 'error'
+            });
+            return;
+        }
+
+        // Create new review
+        const newReview: Review = {
+            id: Math.random().toString(36).substr(2, 9),
+            clientId: currentUser.id,
+            clientName: currentUser.name,
+            techId: selectedTech.id,
+            rating,
+            comment,
+            createdAt: new Date().toISOString()
+        };
+
+        setReviews(prev => [newReview, ...prev]);
+
+        // Update technician rating
+        const techReviews = [...reviews.filter(r => r.techId === selectedTech.id), newReview];
+        const avgRating = techReviews.reduce((sum, r) => sum + r.rating, 0) / techReviews.length;
+
+        setUsersDb(prev => prev.map(u =>
+            u.id === selectedTech.id ? { ...u, rating: Math.round(avgRating * 10) / 10 } : u
+        ));
+
+        setNotification({ msg: 'Avaliação enviada com sucesso!', type: 'success' });
+        setShowReviewForm(false);
+    };
+
     // Helper components (that use local vars)
     const Header = () => (
         <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm">
@@ -699,8 +777,8 @@ export default function App() {
             </div>
             {currentUser && (
                 <div className="flex items-center gap-3">
-                     <button 
-                        onClick={() => setCurrentView('SETTINGS')} 
+                    <button
+                        onClick={() => setCurrentView('SETTINGS')}
                         className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
                         title="Configurações"
                     >
@@ -717,21 +795,20 @@ export default function App() {
     return (
         <div className="min-h-screen bg-slate-50 font-sans relative text-slate-900">
             {notification && (
-                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${
-                    notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-                }`}>
-                    {notification.type === 'success' ? <CheckCircle size={20}/> : <AlertCircle size={20}/>}
+                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                    }`}>
+                    {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
                     <span className="font-medium">{notification.msg}</span>
                 </div>
             )}
 
             {currentView !== 'LOGIN' && !currentView.startsWith('REGISTER') && <Header />}
-            
+
             <main className="animate-fade-in">
                 {currentView === 'LOGIN' && (
-                    <LoginView 
-                        usersDb={usersDb} 
-                        onLoginSuccess={handleLoginSuccess} 
+                    <LoginView
+                        usersDb={usersDb}
+                        onLoginSuccess={handleLoginSuccess}
                         onNavigateRegister={() => setCurrentView('REGISTER_SELECTION')}
                         onError={(msg) => setNotification({ msg, type: 'error' })}
                     />
@@ -740,42 +817,42 @@ export default function App() {
                     <RegisterSelectionView onNavigate={setCurrentView} />
                 )}
                 {currentView === 'REGISTER_CLIENT' && (
-                    <RegisterClientView 
-                        onRegister={handleRegister} 
-                        onBack={() => setCurrentView('REGISTER_SELECTION')} 
+                    <RegisterClientView
+                        onRegister={handleRegister}
+                        onBack={() => setCurrentView('REGISTER_SELECTION')}
                     />
                 )}
                 {currentView === 'REGISTER_TECH' && (
-                    <RegisterTechView 
-                        onRegister={handleRegister} 
-                        onBack={() => setCurrentView('REGISTER_SELECTION')} 
+                    <RegisterTechView
+                        onRegister={handleRegister}
+                        onBack={() => setCurrentView('REGISTER_SELECTION')}
                     />
                 )}
                 {currentView === 'SETTINGS' && currentUser && (
-                    <SettingsView 
+                    <SettingsView
                         currentUser={currentUser}
                         usersDb={usersDb}
                         onUpdate={handleUpdateProfile}
                         onBack={() => setCurrentView(currentUser.role === UserRole.CLIENT ? 'CLIENT_HOME' : 'TECH_DASHBOARD')}
                     />
                 )}
-                
+
                 {currentView === 'CLIENT_HOME' && (
-                    <ClientHome 
-                        usersDb={usersDb} 
+                    <ClientHome
+                        usersDb={usersDb}
                         onSelectTech={(id) => {
                             const tech = usersDb.find(u => u.id === id) as Technician;
                             if (tech) {
                                 setSelectedTech(tech);
                                 setCurrentView('CLIENT_TECH_PROFILE');
                             }
-                        }} 
+                        }}
                     />
                 )}
 
                 {currentView === 'CLIENT_TECH_PROFILE' && selectedTech && (
                     <div className="pb-24 max-w-md mx-auto bg-white min-h-screen">
-                         <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-3">
+                        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-3">
                             <button onClick={() => setCurrentView('CLIENT_HOME')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                 <ChevronLeft size={24} />
                             </button>
@@ -822,8 +899,8 @@ export default function App() {
                                                             }}
                                                             className={`
                                                                 py-2 rounded-lg text-sm font-medium transition-all
-                                                                ${isDisabled 
-                                                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed decoration-slate-400' 
+                                                                ${isDisabled
+                                                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed decoration-slate-400'
                                                                     : 'bg-white border border-primary-200 text-primary-700 shadow-sm hover:bg-primary-600 hover:text-white hover:border-primary-600'
                                                                 }
                                                             `}
@@ -837,14 +914,71 @@ export default function App() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Reviews Section */}
+                            <div className="mb-6">
+                                <h3 className="font-semibold text-slate-900 mb-3">Avaliações</h3>
+                                <ReviewList reviews={reviews.filter(r => r.techId === selectedTech.id)} />
+                            </div>
+
+                            {/* Review Form Section */}
+                            {currentUser && (() => {
+                                const hasCompletedAppointment = appointments.some(
+                                    apt => apt.clientId === currentUser.id &&
+                                        apt.techId === selectedTech.id &&
+                                        apt.status === AppointmentStatus.COMPLETED
+                                );
+                                const alreadyReviewed = reviews.some(
+                                    r => r.clientId === currentUser.id && r.techId === selectedTech.id
+                                );
+
+                                if (!hasCompletedAppointment) {
+                                    return (
+                                        <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-200">
+                                            <p className="text-sm text-slate-600">
+                                                Você poderá avaliar este técnico após ser atendido.
+                                            </p>
+                                        </div>
+                                    );
+                                }
+
+                                if (alreadyReviewed) {
+                                    return (
+                                        <div className="bg-green-50 p-4 rounded-xl text-center border border-green-200">
+                                            <p className="text-sm text-green-700 font-medium">
+                                                ✓ Você já avaliou este técnico.
+                                            </p>
+                                        </div>
+                                    );
+                                }
+
+                                if (showReviewForm) {
+                                    return (
+                                        <ReviewForm
+                                            onSubmit={handleSubmitReview}
+                                            onCancel={() => setShowReviewForm(false)}
+                                        />
+                                    );
+                                }
+
+                                return (
+                                    <Button
+                                        fullWidth
+                                        onClick={() => setShowReviewForm(true)}
+                                        className="mb-4"
+                                    >
+                                        Avaliar Atendimento
+                                    </Button>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
 
                 {currentView === 'CLIENT_BOOKING' && (
-                    <ClientBooking 
-                        date={bookingDate} 
-                        time={bookingTime} 
+                    <ClientBooking
+                        date={bookingDate}
+                        time={bookingTime}
                         onConfirm={handleConfirmBooking}
                         onBack={() => setCurrentView('CLIENT_TECH_PROFILE')}
                     />
@@ -874,11 +1008,11 @@ export default function App() {
                                                     <p className="text-xs text-slate-500">Técnico</p>
                                                 </div>
                                                 <div className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider
-                                                    ${apt.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' : 
-                                                    apt.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}
+                                                    ${apt.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                                                        apt.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}
                                                 `}>
-                                                    {apt.status === 'CONFIRMED' ? 'Confirmado' : 
-                                                    apt.status === 'CANCELLED' ? 'Cancelado' : apt.status}
+                                                    {apt.status === 'CONFIRMED' ? 'Confirmado' :
+                                                        apt.status === 'CANCELLED' ? 'Cancelado' : apt.status}
                                                 </div>
                                             </div>
                                             <div className="space-y-2 text-sm text-slate-600 mb-4">
@@ -895,12 +1029,12 @@ export default function App() {
                                                 </div>
                                             </div>
                                             {apt.status === 'CONFIRMED' && (
-                                                <Button 
-                                                    variant="secondary" 
-                                                    fullWidth 
-                                                    size="sm" 
+                                                <Button
+                                                    variant="secondary"
+                                                    fullWidth
+                                                    size="sm"
                                                     className={`${canCancel ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-slate-400 border-slate-200 bg-slate-50 cursor-not-allowed'}`}
-                                                    onClick={() => { if(canCancel) setAppointmentToCancel(apt); }}
+                                                    onClick={() => { if (canCancel) setAppointmentToCancel(apt); }}
                                                     disabled={!canCancel}
                                                 >
                                                     {canCancel ? 'Cancelar Agendamento' : 'Cancelamento indisponível (< 24h)'}
@@ -913,9 +1047,9 @@ export default function App() {
                         )}
                     </div>
                 )}
-                
+
                 {currentView === 'TECH_DASHBOARD' && currentUser && (
-                    <TechDashboardImpl 
+                    <TechDashboardImpl
                         currentUser={currentUser}
                         techSchedules={techSchedules}
                         setTechSchedules={setTechSchedules}
@@ -927,15 +1061,15 @@ export default function App() {
             </main>
 
             {currentUser?.role === UserRole.CLIENT && currentView !== 'SETTINGS' && (
-                 <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg">
-                    <button 
+                <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg">
+                    <button
                         onClick={() => setCurrentView('CLIENT_HOME')}
                         className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
                         <Search size={24} />
                         <span className="text-xs font-medium mt-1">Buscar</span>
                     </button>
-                    <button 
+                    <button
                         onClick={() => setCurrentView('CLIENT_APPOINTMENTS')}
                         className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
                     >
@@ -959,21 +1093,21 @@ export default function App() {
                             </p>
                         </div>
                         <div className="flex gap-3 mt-6">
-                            <Button 
-                                variant="secondary" 
-                                fullWidth 
+                            <Button
+                                variant="secondary"
+                                fullWidth
                                 onClick={() => setAppointmentToCancel(null)}
                             >
                                 Voltar
                             </Button>
-                            <Button 
-                                variant="danger" 
-                                fullWidth 
+                            <Button
+                                variant="danger"
+                                fullWidth
                                 onClick={() => {
                                     handleCancelAppointment(
-                                        appointmentToCancel.id, 
-                                        appointmentToCancel.techId, 
-                                        appointmentToCancel.date, 
+                                        appointmentToCancel.id,
+                                        appointmentToCancel.techId,
+                                        appointmentToCancel.date,
                                         appointmentToCancel.time
                                     );
                                     setAppointmentToCancel(null);
@@ -1000,7 +1134,7 @@ const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appoi
             const ts = prev[currentUser.id] ? [...prev[currentUser.id]] : [];
             const dayIndex = ts.findIndex((d: DaySchedule) => d.date === date);
             if (dayIndex >= 0) {
-                const newSlots = ts[dayIndex].slots.map((slot: any) => 
+                const newSlots = ts[dayIndex].slots.map((slot: any) =>
                     slot.time === time ? { ...slot, isBlocked: !slot.isBlocked } : slot
                 );
                 ts[dayIndex] = { ...ts[dayIndex], slots: newSlots };
@@ -1019,13 +1153,13 @@ const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appoi
             </div>
 
             <div className="flex p-1 bg-white border border-slate-200 rounded-xl mb-6">
-                <button 
+                <button
                     onClick={() => setTab('APPOINTMENTS')}
                     className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'APPOINTMENTS' ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-slate-500'}`}
                 >
                     Próximos Serviços
                 </button>
-                <button 
+                <button
                     onClick={() => setTab('AGENDA')}
                     className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'AGENDA' ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-slate-500'}`}
                 >
@@ -1038,7 +1172,7 @@ const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appoi
                     {techApts.length === 0 ? (
                         <div className="text-center py-12 bg-white rounded-xl border border-slate-200 border-dashed">
                             <div className="text-slate-400 mb-2">
-                                <Calendar size={32} className="mx-auto"/>
+                                <Calendar size={32} className="mx-auto" />
                             </div>
                             <p className="text-slate-500 font-medium">Não há agendamentos ativos.</p>
                         </div>
@@ -1050,7 +1184,7 @@ const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appoi
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <p className="text-xs font-bold text-primary-600 uppercase mb-1 flex items-center gap-1">
-                                                <Clock size={12}/>
+                                                <Clock size={12} />
                                                 {new Date(apt.date).toLocaleDateString('pt-BR')} • {apt.time}
                                             </p>
                                             <h3 className="font-bold text-slate-900">{apt.clientName}</h3>
@@ -1070,7 +1204,7 @@ const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appoi
                                         </div>
                                     </div>
                                     <div className="mt-4 flex justify-end">
-                                            <Button
+                                        <Button
                                             size="sm"
                                             variant="danger"
                                             disabled={!canCancel}
@@ -1108,10 +1242,10 @@ const TechDashboardImpl = ({ currentUser, techSchedules, setTechSchedules, appoi
                                             onClick={() => handleToggleSlotBlock(day.date, slot.time)}
                                             className={`
                                                 w-full py-2 px-1 rounded-lg text-sm font-medium border transition-all duration-200 active:scale-95 transform relative overflow-hidden
-                                                ${slot.isBooked 
-                                                    ? 'bg-green-100 border-green-200 text-green-800 opacity-60 cursor-not-allowed' 
-                                                    : slot.isBlocked 
-                                                        ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 shadow-inner' 
+                                                ${slot.isBooked
+                                                    ? 'bg-green-100 border-green-200 text-green-800 opacity-60 cursor-not-allowed'
+                                                    : slot.isBlocked
+                                                        ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 shadow-inner'
                                                         : 'bg-white border-slate-200 text-slate-600 hover:border-primary-400 hover:text-primary-600 hover:shadow-sm'
                                                 }
                                             `}
