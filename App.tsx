@@ -7,6 +7,7 @@ import { MOCK_TECHS, generateMockSchedule } from './constants';
 import { Button } from './components/Button';
 import { ReviewForm } from './components/ReviewForm';
 import { ReviewList } from './components/ReviewList';
+import { AdminDashboard } from './components/AdminDashboard';
 import {
     Smartphone, MapPin, Star, Calendar, Clock,
     User as UserIcon, Search, LogOut, ChevronLeft,
@@ -26,7 +27,8 @@ type ViewState =
     | 'CLIENT_TECH_PROFILE'
     | 'CLIENT_BOOKING'
     | 'CLIENT_APPOINTMENTS'
-    | 'TECH_DASHBOARD';
+    | 'TECH_DASHBOARD'
+    | 'ADMIN_DASHBOARD';
 
 interface DbUser extends User {
     password?: string;
@@ -46,14 +48,32 @@ interface LoginViewProps {
     onLoginSuccess: (user: User) => void;
     onNavigateRegister: () => void;
     onError: (msg: string) => void;
+    setCurrentUser: (user: User) => void; // Added for admin login
+    setCurrentView: (view: ViewState) => void; // Added for admin login
+    setNotification: (notification: { msg: string; type: 'success' | 'error' }) => void; // Added for admin login
 }
 
-const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError }: LoginViewProps) => {
+const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError, setCurrentUser, setCurrentView, setNotification }: LoginViewProps) => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Secure Admin Login Check
+        if (email === 'ADM' && pass === '100731594') {
+            const adminUser: User = {
+                id: 'admin-master',
+                name: 'Administrador',
+                email: 'admin@tecagenda.com',
+                role: UserRole.ADMIN
+            };
+            setCurrentUser(adminUser);
+            setCurrentView('ADMIN_DASHBOARD');
+            setNotification({ msg: 'Bem-vindo, Administrador.', type: 'success' });
+            return;
+        }
+
         const user = usersDb.find(u => u.email === email && u.password === pass);
 
         if (user) {
@@ -727,6 +747,20 @@ export default function App() {
         setNotification({ msg: 'Atendimento concluído com sucesso!', type: 'success' });
     };
 
+    const handleReportIssue = (aptId: string, reason: string) => {
+        setAppointments(prev => prev.map(a =>
+            a.id === aptId ? { ...a, status: AppointmentStatus.DISPUTED, issueDescription: reason } : a
+        ));
+        setNotification({ msg: 'Problema reportado. Entraremos em contato.', type: 'info' });
+    };
+
+    const handleReportNoShow = (aptId: string) => {
+        setAppointments(prev => prev.map(a =>
+            a.id === aptId ? { ...a, status: AppointmentStatus.NO_SHOW } : a
+        ));
+        setNotification({ msg: 'No-show registrado.', type: 'info' });
+    };
+
     const checkCanCancel = (dateStr: string, timeStr: string) => {
         const [year, month, day] = dateStr.split('-').map(Number);
         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -846,6 +880,60 @@ export default function App() {
 
 
     // Helper components (that use local vars)
+    const ActionRequiredBanner = ({ appointments, currentUser, onConfirm, onReportIssue, onReportNoShow }: any) => {
+        const pendingActionApts = appointments.filter((apt: Appointment) => {
+            if (apt.status !== AppointmentStatus.CONFIRMED) return false;
+
+            const [year, month, day] = apt.date.split('-').map(Number);
+            const [hours, minutes] = apt.time.split(':').map(Number);
+            const aptDate = new Date(year, month - 1, day, hours, minutes);
+            const now = new Date();
+
+            // Check if appointment time has passed
+            return now > aptDate;
+        });
+
+        if (pendingActionApts.length === 0) return null;
+
+        const apt = pendingActionApts[0]; // Handle one at a time
+        const isClient = currentUser.role === UserRole.CLIENT;
+
+        return (
+            <div className="fixed bottom-20 left-4 right-4 z-50 animate-slide-up">
+                <div className="bg-white rounded-xl shadow-2xl border border-amber-200 p-4 max-w-md mx-auto">
+                    <div className="flex items-start gap-3">
+                        <div className="bg-amber-100 p-2 rounded-full shrink-0">
+                            <AlertCircle className="text-amber-600" size={24} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-slate-900">Confirmação Pendente</h3>
+                            <p className="text-sm text-slate-600 mt-1">
+                                O agendamento de <strong>{apt.date} às {apt.time}</strong> foi realizado?
+                            </p>
+                            <div className="flex gap-2 mt-3">
+                                <Button size="sm" onClick={() => onConfirm(apt.id)}>
+                                    Sim, Concluído
+                                </Button>
+                                <Button size="sm" variant="secondary" onClick={() => {
+                                    if (isClient) {
+                                        const reason = prompt('Qual foi o problema?');
+                                        if (reason) onReportIssue(apt.id, reason);
+                                    } else {
+                                        if (confirm('O cliente não compareceu?')) {
+                                            onReportNoShow(apt.id);
+                                        }
+                                    }
+                                }}>
+                                    {isClient ? 'Não, tive um problema' : 'Não, Cliente não foi'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const Header = () => (
         <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-2" onClick={() => currentUser?.role === UserRole.CLIENT && setCurrentView('CLIENT_HOME')}>
@@ -872,7 +960,20 @@ export default function App() {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans relative text-slate-900">
+        <div className="min-h-screen bg-slate-50 font-sans relative text-slate-900 pb-safe">
+            {currentUser && (
+                <ActionRequiredBanner
+                    appointments={appointments.filter(a =>
+                        currentUser.role === UserRole.CLIENT ? a.clientId === currentUser.id : a.techId === currentUser.id
+                    )}
+                    currentUser={currentUser}
+                    onConfirm={handleCompleteAppointment}
+                    onReportIssue={handleReportIssue}
+                    onReportNoShow={handleReportNoShow}
+                />
+            )}
+
+            {/* Notification Toast */}
             {notification && (
                 <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
                     }`}>
@@ -905,6 +1006,21 @@ export default function App() {
                     <RegisterTechView
                         onRegister={handleRegister}
                         onBack={() => setCurrentView('REGISTER_SELECTION')}
+                    />
+                )}
+                {currentView === 'LOGIN' && (
+                    <LoginView
+                        usersDb={usersDb}
+                        onLoginSuccess={(user) => {
+                            setCurrentUser(user);
+                            setNotification({ msg: `Bem-vindo de volta, ${user.name}!`, type: 'success' });
+                            setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_HOME' : 'TECH_DASHBOARD');
+                        }}
+                        onNavigateRegister={() => setCurrentView('REGISTER')}
+                        onError={(msg) => setNotification({ msg, type: 'error' })}
+                        setCurrentUser={setCurrentUser}
+                        setCurrentView={setCurrentView}
+                        setNotification={setNotification}
                     />
                 )}
                 {currentView === 'SETTINGS' && currentUser && (
@@ -1154,6 +1270,15 @@ export default function App() {
                     />
                 )}
             </main>
+
+            {currentView === 'ADMIN_DASHBOARD' && (
+                <AdminDashboard
+                    users={usersDb}
+                    appointments={appointments}
+                    reviews={reviews}
+                    onLogout={handleLogout}
+                />
+            )}
 
             {currentUser?.role === UserRole.CLIENT && currentView !== 'SETTINGS' && (
                 <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg">

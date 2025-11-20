@@ -1,13 +1,16 @@
 export enum UserRole {
     CLIENT = 'CLIENT',
-    TECHNICIAN = 'TECHNICIAN'
+    TECHNICIAN = 'TECHNICIAN',
+    ADMIN = 'ADMIN'
 }
 
 export enum AppointmentStatus {
     PENDING = 'PENDING',
     CONFIRMED = 'CONFIRMED',
     COMPLETED = 'COMPLETED',
-    CANCELLED = 'CANCELLED'
+    CANCELLED = 'CANCELLED',
+    NO_SHOW = 'NO_SHOW',
+    DISPUTED = 'DISPUTED'
 }
 
 export interface User {
