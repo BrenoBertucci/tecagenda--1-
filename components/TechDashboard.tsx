@@ -3,6 +3,7 @@ import { User, Appointment, Review, UserRole, DaySchedule, AppointmentStatus } f
 import { Button } from './Button';
 import { ReviewList } from './ReviewList';
 import { Calendar, Clock, User as UserIcon, AlertCircle } from 'lucide-react';
+import { ScheduleManager } from './schedules/ScheduleManager';
 
 interface TechDashboardProps {
     currentUser: User;
@@ -151,48 +152,17 @@ export const TechDashboard = ({
                         })
                     )}
                 </div>
-            ) : (
-                <div className="space-y-6 animate-fade-in">
-                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
-                        <AlertCircle className="text-blue-600 shrink-0" size={20} />
-                        <p className="text-sm text-blue-800">
-                            Toque nos horários para bloquear ou desbloquear sua disponibilidade.
-                        </p>
-                    </div>
-
-                    {techSchedule.map((day: DaySchedule) => (
-                        <div key={day.date}>
-                            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                <Calendar size={16} className="text-slate-400" />
-                                {new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric' })}
-                            </h4>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                {day.slots.map((slot: any) => (
-                                    <div key={slot.id} className="relative group">
-                                        <button
-                                            disabled={slot.isBooked}
-                                            onClick={() => handleToggleSlotBlock(day.date, slot.time)}
-                                            className={`
-                                                w-full py-2 px-1 rounded-lg text-sm font-medium border transition-all duration-200 active:scale-95 transform relative overflow-hidden
-                                                ${slot.isBooked
-                                                    ? 'bg-green-100 border-green-200 text-green-800 opacity-60 cursor-not-allowed'
-                                                    : slot.isBlocked
-                                                        ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100 shadow-inner'
-                                                        : 'bg-white border-slate-200 text-slate-600 hover:border-primary-400 hover:text-primary-600 hover:shadow-sm'
-                                                }
-                                            `}
-                                        >
-                                            {slot.time}
-                                            {slot.isBooked && <span className="block text-[10px] font-bold">AGENDADO</span>}
-                                            {slot.isBlocked && !slot.isBooked && <span className="block text-[10px]">BLOQUEADO</span>}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            ) : tab === 'AGENDA' ? (
+                <ScheduleManager
+                    techId={currentUser.id}
+                    onScheduleUpdate={async () => {
+                        // Recarregar schedules após atualização
+                        const { SupabaseService } = await import('../services/SupabaseService');
+                        const schedules = await SupabaseService.getSchedules();
+                        setTechSchedules(schedules);
+                    }}
+                />
+            ) : null}
         </div>
     );
 };
