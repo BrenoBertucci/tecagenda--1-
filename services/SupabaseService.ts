@@ -337,5 +337,118 @@ export const SupabaseService = {
             }, { onConflict: 'tech_id, date' });
 
         if (error) throw error;
+    },
+
+    // --- WEEKLY TEMPLATES ---
+    async getWeeklyTemplate(techId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('weekly_templates')
+            .select('*')
+            .eq('tech_id', techId)
+            .eq('is_active', true)
+            .order('day_of_week');
+
+        if (error) {
+            console.error('Error fetching weekly template:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    async saveWeeklyTemplate(techId: string, dayOfWeek: number, startTime: string, endTime: string): Promise<void> {
+        const { error } = await supabase
+            .from('weekly_templates')
+            .upsert({
+                tech_id: techId,
+                day_of_week: dayOfWeek,
+                start_time: startTime,
+                end_time: endTime,
+                is_active: true,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'tech_id,day_of_week' });
+
+        if (error) throw error;
+    },
+
+    async deleteWeeklyTemplate(techId: string, dayOfWeek: number): Promise<void> {
+        const { error } = await supabase
+            .from('weekly_templates')
+            .update({ is_active: false })
+            .eq('tech_id', techId)
+            .eq('day_of_week', dayOfWeek);
+
+        if (error) throw error;
+    },
+
+    async createDefaultTemplate(techId: string): Promise<void> {
+        const { error } = await supabase.rpc('create_default_commercial_template', {
+            p_tech_id: techId
+        });
+
+        if (error) throw error;
+    },
+
+    // --- DAY BLOCKS ---
+    async getDayBlocks(techId: string, startDate?: string, endDate?: string): Promise<any[]> {
+        let query = supabase
+            .from('day_blocks')
+            .select('*')
+            .eq('tech_id', techId)
+            .order('block_date');
+
+        if (startDate) {
+            query = query.gte('block_date', startDate);
+        }
+        if (endDate) {
+            query = query.lte('block_date', endDate);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('Error fetching day blocks:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    async blockDay(techId: string, blockDate: string, reason?: string): Promise<void> {
+        const { error } = await supabase
+            .from('day_blocks')
+            .insert({
+                tech_id: techId,
+                block_date: blockDate,
+                reason: reason || null
+            });
+
+        if (error) throw error;
+    },
+
+    async unblockDay(techId: string, blockDate: string): Promise<void> {
+        const { error } = await supabase
+            .from('day_blocks')
+            .delete()
+            .eq('tech_id', techId)
+            .eq('block_date', blockDate);
+
+        if (error) throw error;
+    },
+
+    // --- SCHEDULE GENERATION ---
+    async generateScheduleFromTemplate(techId: string, startDate?: string, daysAhead: number = 30): Promise<number> {
+        const { data, error } = await supabase.rpc('generate_schedule_from_template', {
+            p_tech_id: techId,
+            p_start_date: startDate || new Date().toISOString().split('T')[0],
+            p_days_ahead: daysAhead
+        });
+
+        if (error) {
+            console.error('Error generating schedule:', error);
+            throw error;
+        }
+
+        return data || 0;
     }
 };
