@@ -20,9 +20,7 @@ export const SupabaseService = {
         if (authError) throw authError;
         if (!authData.user) throw new Error('No user returned from signup');
 
-        // 2. Create Public Profile (using the Auth ID)
-        const newUser: DbUser = { ...userData, id: authData.user.id };
-        await this.createUser(newUser);
+        // 2. Public Profile is created automatically by DB Trigger (handle_new_user)
 
         return {
             id: authData.user.id,
@@ -87,8 +85,6 @@ export const SupabaseService = {
         };
 
         if (data.role === 'TECHNICIAN') {
-            // Fetch extra tech data if needed, but currently it's in users table (merged)
-            // Based on user's schema, tech fields are in users table.
             return {
                 ...baseUser,
                 specialties: data.specialties || [],
@@ -137,32 +133,6 @@ export const SupabaseService = {
         });
     },
 
-    async createUser(user: any): Promise<void> {
-        const userData: any = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            avatar_url: user.avatarUrl,
-            password: user.password // Warning: Plain text as per user schema
-        };
-
-        if (user.role === 'TECHNICIAN') {
-            userData.specialties = user.specialties;
-            userData.bio = user.bio;
-            userData.address = user.address;
-            userData.distance = user.distance;
-            userData.price_estimate = user.priceEstimate;
-            userData.rating = user.rating || 5.0;
-        }
-
-        const { error } = await supabase
-            .from('users')
-            .insert(userData);
-
-        if (error) throw error;
-    },
-
     async updateUser(user: User | Technician): Promise<void> {
         const updates: any = {
             name: user.name,
@@ -190,7 +160,7 @@ export const SupabaseService = {
     // --- APPOINTMENTS ---
     async getAppointments(): Promise<Appointment[]> {
         const { data, error } = await supabase
-            .from('appointment_details') // Using view
+            .from('appointment_details')
             .select('*')
             .order('created_at', { ascending: false });
 
@@ -246,7 +216,7 @@ export const SupabaseService = {
     // --- REVIEWS ---
     async getReviews(): Promise<Review[]> {
         const { data, error } = await supabase
-            .from('technician_reviews') // Using view
+            .from('technician_reviews')
             .select('*')
             .order('created_at', { ascending: false });
 
@@ -303,7 +273,6 @@ export const SupabaseService = {
     },
 
     async deleteReview(id: string): Promise<void> {
-        // Soft delete
         const { error } = await supabase
             .from('reviews')
             .update({ deleted_at: new Date().toISOString() })
@@ -337,7 +306,6 @@ export const SupabaseService = {
     },
 
     async updateSchedule(techId: string, daySchedule: DaySchedule): Promise<void> {
-        // Upsert schedule for that day
         const { error } = await supabase
             .from('schedules')
             .upsert({
