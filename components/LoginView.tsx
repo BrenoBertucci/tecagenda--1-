@@ -77,7 +77,7 @@ export const LoginView = ({ onLogin, onNavigateRegister, onError, setCurrentUser
 
                     <Button type="submit" fullWidth size="lg" className="mt-2 shadow-md">Entrar</Button>
 
-                    <div className="mt-8 text-center">
+                    <div className="mt-8 text-center space-y-4">
                         <p className="text-slate-500 text-sm">
                             Não tem uma conta?{' '}
                             <button
@@ -87,6 +87,12 @@ export const LoginView = ({ onLogin, onNavigateRegister, onError, setCurrentUser
                                 Cadastre-se
                             </button>
                         </p>
+                        <button
+                            onClick={() => setCurrentView('ABOUT')}
+                            className="text-slate-400 text-sm hover:text-primary-600 transition-colors"
+                        >
+                            Sobre nós
+                        </button>
                     </div>
                 </form>
             </div>

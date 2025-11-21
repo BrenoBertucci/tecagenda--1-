@@ -22,6 +22,7 @@ import { TermsView, PrivacyView } from './components/LegalDocs';
 
 import { Footer } from './components/Footer';
 import { TechDashboard } from './components/TechDashboard';
+import { AboutView } from './components/AboutView';
 
 // --- GLOBAL STATE TYPES ---
 
@@ -39,7 +40,8 @@ type ViewState =
     | 'ADMIN_DASHBOARD'
     | 'ADMIN_LOGIN'
     | 'TERMS'
-    | 'PRIVACY';
+    | 'PRIVACY'
+    | 'ABOUT';
 
 
 
@@ -795,6 +797,9 @@ export default function App() {
                         onRegister={handleRegister}
                         onBack={() => setCurrentView('REGISTER_SELECTION')}
                     />
+                )}
+                {currentView === 'ABOUT' && (
+                    <AboutView onBack={() => setCurrentView('LOGIN')} />
                 )}
 
 
