@@ -4,7 +4,12 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase URL or Key missing. Please check .env.local');
+    console.error('CRITICAL ERROR: Supabase environment variables are missing!');
+    console.error('Please check .env.local and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Use placeholders to prevent crash during module initialization
+const safeUrl = supabaseUrl || 'https://placeholder.supabase.co';
+const safeKey = supabaseAnonKey || 'placeholder';
+
+export const supabase = createClient(safeUrl, safeKey);
