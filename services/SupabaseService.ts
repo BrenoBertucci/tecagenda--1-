@@ -4,7 +4,7 @@ import { User, Technician, Appointment, Review, DaySchedule, UserRole, DbUser } 
 export const SupabaseService = {
     // --- AUTH ---
     async signUp(email: string, password: string, userData: DbUser): Promise<User> {
-        // 1. Sign up with Supabase Auth
+        // Sign up with Supabase Auth - o trigger criará o usuário automaticamente
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email,
             password,
@@ -20,7 +20,8 @@ export const SupabaseService = {
         if (authError) throw authError;
         if (!authData.user) throw new Error('No user returned from signup');
 
-        // 2. Public Profile is created automatically by DB Trigger (handle_new_user)
+        // Aguardar um pouco para o trigger criar o usuário
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         return {
             id: authData.user.id,
@@ -41,7 +42,7 @@ export const SupabaseService = {
         if (error) throw error;
         if (!data.user) throw new Error('Login failed');
 
-        // Fetch profile
+        // Buscar perfil
         const profile = await this.getUserProfile(data.user.id);
         if (!profile) throw new Error('Profile not found');
 
@@ -73,7 +74,10 @@ export const SupabaseService = {
             .is('deleted_at', null)
             .single();
 
-        if (error) return null;
+        if (error) {
+            console.error('Error fetching user profile:', error);
+            return null;
+        }
 
         const baseUser: User = {
             id: data.id,
@@ -106,7 +110,10 @@ export const SupabaseService = {
             .select('*')
             .is('deleted_at', null);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching users:', error);
+            return [];
+        }
 
         return data.map((u: any) => {
             const baseUser: User = {
@@ -136,7 +143,8 @@ export const SupabaseService = {
     async updateUser(user: User | Technician): Promise<void> {
         const updates: any = {
             name: user.name,
-            avatar_url: user.avatarUrl
+            avatar_url: user.avatarUrl,
+            updated_at: new Date().toISOString()
         };
 
         if (user.role === 'TECHNICIAN') {
@@ -164,7 +172,10 @@ export const SupabaseService = {
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching appointments:', error);
+            return [];
+        }
 
         return data.map((a: any) => ({
             id: a.id,
@@ -202,7 +213,10 @@ export const SupabaseService = {
     },
 
     async updateAppointmentStatus(id: string, status: string, issueDescription?: string): Promise<void> {
-        const updateData: any = { status };
+        const updateData: any = {
+            status,
+            updated_at: new Date().toISOString()
+        };
         if (issueDescription) updateData.issue_description = issueDescription;
 
         const { error } = await supabase
@@ -220,7 +234,10 @@ export const SupabaseService = {
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching reviews:', error);
+            return [];
+        }
 
         return data.map((r: any) => ({
             id: r.id,
@@ -265,7 +282,8 @@ export const SupabaseService = {
                 comment: review.comment,
                 tags: review.tags,
                 reply_text: review.reply?.text,
-                reply_at: review.reply?.createdAt
+                reply_at: review.reply?.createdAt,
+                updated_at: new Date().toISOString()
             })
             .eq('id', review.id);
 
@@ -288,7 +306,10 @@ export const SupabaseService = {
             .select('*')
             .is('deleted_at', null);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching schedules:', error);
+            return {};
+        }
 
         const schedules: Record<string, DaySchedule[]> = {};
 
@@ -311,7 +332,8 @@ export const SupabaseService = {
             .upsert({
                 tech_id: techId,
                 date: daySchedule.date,
-                slots: daySchedule.slots
+                slots: daySchedule.slots,
+                updated_at: new Date().toISOString()
             }, { onConflict: 'tech_id, date' });
 
         if (error) throw error;
