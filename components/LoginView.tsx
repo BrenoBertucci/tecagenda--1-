@@ -4,8 +4,7 @@ import { Button } from './Button';
 import { Smartphone, Mail, Lock } from 'lucide-react';
 
 interface LoginViewProps {
-    usersDb: User[];
-    onLoginSuccess: (user: User) => void;
+    onLogin: (email: string, pass: string) => Promise<void>;
     onNavigateRegister: () => void;
     onError: (msg: string) => void;
     setCurrentUser: (user: User | null) => void;
@@ -13,7 +12,7 @@ interface LoginViewProps {
     setNotification: (notification: { msg: string; type: 'success' | 'error' }) => void;
 }
 
-export const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError, setCurrentUser, setCurrentView, setNotification }: LoginViewProps) => {
+export const LoginView = ({ onLogin, onNavigateRegister, onError, setCurrentUser, setCurrentView, setNotification }: LoginViewProps) => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [logoClicks, setLogoClicks] = useState(0);
@@ -27,23 +26,9 @@ export const LoginView = ({ usersDb, onLoginSuccess, onNavigateRegister, onError
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        const user = usersDb.find(u => u.email === email && (u as any).password === pass);
-
-        if (user) {
-            const sessionUser: User = {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                avatarUrl: user.avatarUrl
-            };
-            onLoginSuccess(sessionUser);
-        } else {
-            onError('Email ou senha inválidos');
-        }
+        await onLogin(email, pass);
     };
 
     return (

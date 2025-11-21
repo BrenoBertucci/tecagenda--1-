@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Technician, Appointment, Review, UserRole, AppointmentStatus, DaySchedule, StructuredLog } from './types';
+import { User, Technician, Appointment, Review, UserRole, AppointmentStatus, DaySchedule, StructuredLog, DbUser } from './types';
 import { logService } from './services/LogService';
 import { SupabaseService } from './services/SupabaseService';
 import { generateMockSchedule } from './constants';
@@ -41,15 +41,7 @@ type ViewState =
     | 'TERMS'
     | 'PRIVACY';
 
-interface DbUser extends User {
-    password?: string;
-    specialties?: string[];
-    rating?: number;
-    distance?: string;
-    priceEstimate?: string;
-    bio?: string;
-    address?: string;
-}
+
 
 // --- SUB-COMPONENTS (MOVED OUTSIDE APP) ---
 
@@ -247,29 +239,35 @@ export default function App() {
 
     // -- Logic Handlers --
 
-    const handleLoginSuccess = (user: User) => {
-        setCurrentUser(user);
-        setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_HOME' : user.role === UserRole.ADMIN ? 'ADMIN_DASHBOARD' : 'TECH_DASHBOARD');
+    const handleLogin = async (email: string, pass: string) => {
+        try {
+            setIsLoading(true);
+            const user = await SupabaseService.signIn(email, pass);
+
+            setCurrentUser(user);
+            logService.info('LOGIN_SUCCESS', user.id, user.email);
+
+            setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_HOME' : user.role === UserRole.ADMIN ? 'ADMIN_DASHBOARD' : 'TECH_DASHBOARD');
+        } catch (error) {
+            console.error('Login error:', error);
+            setNotification({ msg: 'Email ou senha incorretos.', type: 'error' });
+            logService.warning('LOGIN_FAILED', undefined, email);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleRegister = async (newUser: DbUser) => {
         try {
             setIsLoading(true);
-            await SupabaseService.createUser(newUser);
+            if (!newUser.password) throw new Error('Password required');
 
-            setUsersDb(prev => [...prev, newUser]);
-            if (newUser.role === UserRole.TECHNICIAN) {
-                const initialSchedule = generateMockSchedule(3);
-                // Save initial schedule to Supabase
-                for (const day of initialSchedule) {
-                    await SupabaseService.updateSchedule(newUser.id, day);
-                }
+            await SupabaseService.signUp(newUser.email, newUser.password, newUser);
 
-                setTechSchedules(prev => ({
-                    ...prev,
-                    [newUser.id]: initialSchedule
-                }));
-            }
+            // Optimistic update or wait for login?
+            // Supabase Auth usually requires email confirmation or auto-login.
+            // For now, redirect to login.
+
             setNotification({ msg: 'Conta criada com sucesso! Faça login.', type: 'success' });
             setCurrentView('LOGIN');
         } catch (error) {
@@ -280,11 +278,11 @@ export default function App() {
         }
     };
 
-    const handleLogout = () => {
-        logService.info('USER_LOGOUT', currentUser?.id, currentUser?.email);
+    const handleLogout = async () => {
+        await SupabaseService.signOut();
         setCurrentUser(null);
         setCurrentView('LOGIN');
-        setNotification({ msg: 'Logout realizado com sucesso', type: 'success' });
+        logService.info('LOGOUT', currentUser?.id, currentUser?.email);
     };
 
 
@@ -757,8 +755,7 @@ export default function App() {
             <main className="animate-fade-in">
                 {currentView === 'LOGIN' && (
                     <LoginView
-                        usersDb={usersDb}
-                        onLoginSuccess={handleLoginSuccess}
+                        onLogin={handleLogin}
                         onNavigateRegister={() => setCurrentView('REGISTER_SELECTION')}
                         onError={(msg) => setNotification({ msg, type: 'error' })}
                         setCurrentUser={setCurrentUser}
@@ -768,7 +765,10 @@ export default function App() {
                 )}
                 {currentView === 'ADMIN_LOGIN' && (
                     <AdminLoginView
-                        onLoginSuccess={handleLoginSuccess}
+                        onLoginSuccess={(user) => {
+                            setCurrentUser(user);
+                            setCurrentView('ADMIN_DASHBOARD');
+                        }}
                         onBack={() => setCurrentView('LOGIN')}
                     />
                 )}

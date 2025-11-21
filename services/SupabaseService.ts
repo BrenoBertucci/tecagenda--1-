@@ -1,12 +1,114 @@
 import { supabase } from './supabaseClient';
-import { User, Technician, Appointment, Review, DaySchedule, UserRole } from '../types';
+import { User, Technician, Appointment, Review, DaySchedule, UserRole, DbUser } from '../types';
 
 export const SupabaseService = {
+    // --- AUTH ---
+    async signUp(email: string, password: string, userData: DbUser): Promise<User> {
+        // 1. Sign up with Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    name: userData.name,
+                    role: userData.role,
+                    avatar_url: userData.avatarUrl
+                }
+            }
+        });
+
+        if (authError) throw authError;
+        if (!authData.user) throw new Error('No user returned from signup');
+
+        // 2. Create Public Profile (using the Auth ID)
+        const newUser: DbUser = { ...userData, id: authData.user.id };
+        await this.createUser(newUser);
+
+        return {
+            id: authData.user.id,
+            email: authData.user.email!,
+            name: userData.name,
+            role: userData.role,
+            avatarUrl: userData.avatarUrl,
+            deletionRequested: false
+        };
+    },
+
+    async signIn(email: string, password: string): Promise<User> {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) throw error;
+        if (!data.user) throw new Error('Login failed');
+
+        // Fetch profile
+        const profile = await this.getUserProfile(data.user.id);
+        if (!profile) throw new Error('Profile not found');
+
+        return profile;
+    },
+
+    async signOut(): Promise<void> {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+    },
+
+    async getCurrentUser(): Promise<User | null> {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return null;
+
+        try {
+            return await this.getUserProfile(session.user.id);
+        } catch (error) {
+            console.error('Error fetching profile for session:', error);
+            return null;
+        }
+    },
+
+    async getUserProfile(userId: string): Promise<User | null> {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .is('deleted_at', null)
+            .single();
+
+        if (error) return null;
+
+        const baseUser: User = {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            role: data.role as UserRole,
+            avatarUrl: data.avatar_url,
+            deletionRequested: false
+        };
+
+        if (data.role === 'TECHNICIAN') {
+            // Fetch extra tech data if needed, but currently it's in users table (merged)
+            // Based on user's schema, tech fields are in users table.
+            return {
+                ...baseUser,
+                specialties: data.specialties || [],
+                rating: data.rating || 0,
+                distance: data.distance || '',
+                priceEstimate: data.price_estimate || '',
+                bio: data.bio || '',
+                address: data.address || ''
+            } as Technician;
+        }
+
+        return baseUser;
+    },
+
     // --- USERS ---
     async getUsers(): Promise<User[]> {
         const { data, error } = await supabase
             .from('users')
-            .select('*');
+            .select('*')
+            .is('deleted_at', null);
 
         if (error) throw error;
 
@@ -88,7 +190,7 @@ export const SupabaseService = {
     // --- APPOINTMENTS ---
     async getAppointments(): Promise<Appointment[]> {
         const { data, error } = await supabase
-            .from('appointments')
+            .from('appointment_details') // Using view
             .select('*')
             .order('created_at', { ascending: false });
 
@@ -144,7 +246,7 @@ export const SupabaseService = {
     // --- REVIEWS ---
     async getReviews(): Promise<Review[]> {
         const { data, error } = await supabase
-            .from('reviews')
+            .from('technician_reviews') // Using view
             .select('*')
             .order('created_at', { ascending: false });
 
@@ -201,9 +303,10 @@ export const SupabaseService = {
     },
 
     async deleteReview(id: string): Promise<void> {
+        // Soft delete
         const { error } = await supabase
             .from('reviews')
-            .delete()
+            .update({ deleted_at: new Date().toISOString() })
             .eq('id', id);
 
         if (error) throw error;
@@ -213,7 +316,8 @@ export const SupabaseService = {
     async getSchedules(): Promise<Record<string, DaySchedule[]>> {
         const { data, error } = await supabase
             .from('schedules')
-            .select('*');
+            .select('*')
+            .is('deleted_at', null);
 
         if (error) throw error;
 

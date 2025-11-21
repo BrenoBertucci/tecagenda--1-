@@ -100,3 +100,13 @@ export interface Review {
     createdAt: string;
     updatedAt?: string;
 }
+
+export interface DbUser extends User {
+    password?: string;
+    specialties?: string[];
+    rating?: number;
+    distance?: string;
+    priceEstimate?: string;
+    bio?: string;
+    address?: string;
+}
