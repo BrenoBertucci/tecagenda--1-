@@ -260,19 +260,28 @@ export default function App() {
     const handleRegister = async (newUser: DbUser) => {
         try {
             setIsLoading(true);
+            console.log('🔵 Iniciando registro:', { email: newUser.email, role: newUser.role });
+
             if (!newUser.password) throw new Error('Password required');
 
             await SupabaseService.signUp(newUser.email, newUser.password, newUser);
 
-            // Optimistic update or wait for login?
-            // Supabase Auth usually requires email confirmation or auto-login.
-            // For now, redirect to login.
-
+            console.log('✅ Registro bem-sucedido!');
             setNotification({ msg: 'Conta criada com sucesso! Faça login.', type: 'success' });
             setCurrentView('LOGIN');
-        } catch (error) {
-            console.error('Registration error:', error);
-            setNotification({ msg: 'Erro ao criar conta. Tente novamente.', type: 'error' });
+        } catch (error: any) {
+            console.error('❌ ERRO NO REGISTRO:');
+            console.error('Mensagem:', error?.message);
+            console.error('Código:', error?.code);
+            console.error('Status:', error?.status);
+            console.error('Erro completo:', error);
+
+            let errorMsg = 'Erro ao criar conta. ';
+            if (error?.message) {
+                errorMsg += error.message;
+            }
+
+            setNotification({ msg: errorMsg, type: 'error' });
         } finally {
             setIsLoading(false);
         }
