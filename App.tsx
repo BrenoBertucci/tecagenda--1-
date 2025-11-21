@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Technician, Appointment, Review, UserRole, AppointmentStatus, DaySchedule, StructuredLog } from './types';
 import { logService } from './services/LogService';
-import { MOCK_TECHS, generateMockSchedule } from './constants';
+import { SupabaseService } from './services/SupabaseService';
+import { generateMockSchedule } from './constants';
 import { Button } from './components/Button';
 import {
     Shield, Lock, AlertCircle, User as UserIcon, ArrowLeft,
@@ -205,59 +206,36 @@ export default function App() {
     const [notification, setNotification] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
     const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
     const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     // Initialize Data
     useEffect(() => {
-        const initialUsers: DbUser[] = [
-            { id: 'c99', name: 'Maria Souza', email: 'maria@email.com', password: '123', role: UserRole.CLIENT },
-            ...MOCK_TECHS.map(t => ({ ...t, password: '123' }))
-        ];
-        setUsersDb(initialUsers);
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const [users, apts, revs, schedules] = await Promise.all([
+                    SupabaseService.getUsers(),
+                    SupabaseService.getAppointments(),
+                    SupabaseService.getReviews(),
+                    SupabaseService.getSchedules()
+                ]);
 
-        const initialSchedules: Record<string, DaySchedule[]> = {};
-        MOCK_TECHS.forEach(tech => {
-            initialSchedules[tech.id] = generateMockSchedule(3);
-        });
-        setTechSchedules(initialSchedules);
+                setUsersDb(users as DbUser[]);
+                setAppointments(apts);
+                setReviews(revs);
+                setTechSchedules(schedules);
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-        const mockInitialAppointment: Appointment = {
-            id: 'mock-init-1',
-            clientId: 'c99',
-            clientName: 'Maria Souza',
-            techId: 't1',
-            techName: 'Carlos Silva',
-            date: todayStr,
-            time: '10:00',
-            deviceModel: 'Samsung S21',
-            issueDescription: 'Tela piscando e travando durante uso.',
-            status: AppointmentStatus.CONFIRMED,
-            createdAt: new Date().toISOString()
+                logService.info('APP_INITIALIZED', undefined, undefined, { version: '1.0.0', source: 'Supabase' });
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                setNotification({ msg: 'Erro ao carregar dados do servidor.', type: 'error' });
+            } finally {
+                setIsLoading(false);
+            }
         };
 
-        // Add a completed appointment for testing reviews
-        const mockCompletedAppointment: Appointment = {
-            id: 'mock-completed-1',
-            clientId: 'c99',
-            clientName: 'Maria Souza',
-            techId: 't2',
-            techName: 'Ana Oliveira',
-            date: yesterdayStr,
-            time: '14:00',
-            deviceModel: 'iPhone 12',
-            issueDescription: 'Bateria viciada.',
-            status: AppointmentStatus.COMPLETED,
-            createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-        };
-
-        setAppointments([mockInitialAppointment, mockCompletedAppointment]);
-
-        // Initialize LogService
-        logService.initialize().then(() => {
-            logService.info('APP_INITIALIZED', undefined, undefined, { version: '1.0.0' });
-        });
+        fetchData();
+        logService.initialize();
     }, []);
 
     useEffect(() => {
@@ -274,16 +252,32 @@ export default function App() {
         setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_HOME' : user.role === UserRole.ADMIN ? 'ADMIN_DASHBOARD' : 'TECH_DASHBOARD');
     };
 
-    const handleRegister = (newUser: DbUser) => {
-        setUsersDb(prev => [...prev, newUser]);
-        if (newUser.role === UserRole.TECHNICIAN) {
-            setTechSchedules(prev => ({
-                ...prev,
-                [newUser.id]: generateMockSchedule(3)
-            }));
+    const handleRegister = async (newUser: DbUser) => {
+        try {
+            setIsLoading(true);
+            await SupabaseService.createUser(newUser);
+
+            setUsersDb(prev => [...prev, newUser]);
+            if (newUser.role === UserRole.TECHNICIAN) {
+                const initialSchedule = generateMockSchedule(3);
+                // Save initial schedule to Supabase
+                for (const day of initialSchedule) {
+                    await SupabaseService.updateSchedule(newUser.id, day);
+                }
+
+                setTechSchedules(prev => ({
+                    ...prev,
+                    [newUser.id]: initialSchedule
+                }));
+            }
+            setNotification({ msg: 'Conta criada com sucesso! Faça login.', type: 'success' });
+            setCurrentView('LOGIN');
+        } catch (error) {
+            console.error('Registration error:', error);
+            setNotification({ msg: 'Erro ao criar conta. Tente novamente.', type: 'error' });
+        } finally {
+            setIsLoading(false);
         }
-        setNotification({ msg: 'Conta criada com sucesso! Faça login.', type: 'success' });
-        setCurrentView('LOGIN');
     };
 
     const handleLogout = () => {
@@ -313,13 +307,25 @@ export default function App() {
         });
     };
 
-    const handleUpdateProfile = (updatedData: Partial<User & Technician>) => {
+    const handleUpdateProfile = async (updatedData: Partial<User & Technician>) => {
         if (!currentUser) return;
-        const newSessionUser = { ...currentUser, ...updatedData };
-        setCurrentUser(newSessionUser as User);
-        setUsersDb(prev => prev.map(u => u.id === currentUser.id ? { ...u, ...updatedData } : u));
-        setNotification({ msg: 'Perfil atualizado!', type: 'success' });
-        logService.info('PROFILE_UPDATED', currentUser.id, currentUser.email, { fields: Object.keys(updatedData) });
+
+        try {
+            setIsLoading(true);
+            const newSessionUser = { ...currentUser, ...updatedData };
+
+            await SupabaseService.updateUser(newSessionUser as User);
+
+            setCurrentUser(newSessionUser as User);
+            setUsersDb(prev => prev.map(u => u.id === currentUser.id ? { ...u, ...updatedData } : u));
+            setNotification({ msg: 'Perfil atualizado!', type: 'success' });
+            logService.info('PROFILE_UPDATED', currentUser.id, currentUser.email, { fields: Object.keys(updatedData) });
+        } catch (error) {
+            console.error('Update profile error:', error);
+            setNotification({ msg: 'Erro ao atualizar perfil.', type: 'error' });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -330,7 +336,7 @@ export default function App() {
         }
     }, []);
 
-    const handleConfirmBooking = (model: string, issue: string) => {
+    const handleConfirmBooking = async (model: string, issue: string) => {
         if (!selectedTech || !currentUser) return;
 
         // Robustness Check: Verify if slot is still available
@@ -357,32 +363,49 @@ export default function App() {
             createdAt: new Date().toISOString()
         };
 
-        setAppointments(prev => [newAppointment, ...prev]);
+        try {
+            setIsLoading(true);
+            await SupabaseService.createAppointment(newAppointment);
 
-        setTechSchedules(prev => {
-            const techSchedule = prev[selectedTech.id] ? [...prev[selectedTech.id]] : [];
-            const dayIndex = techSchedule.findIndex(d => d.date === bookingDate);
-            if (dayIndex >= 0) {
-                const newSlots = techSchedule[dayIndex].slots.map(slot =>
-                    slot.time === bookingTime ? { ...slot, isBooked: true } : slot
-                );
-                techSchedule[dayIndex] = { ...techSchedule[dayIndex], slots: newSlots };
+            // Update Schedule
+            let updatedDaySchedule: DaySchedule | null = null;
+
+            setTechSchedules(prev => {
+                const techSchedule = prev[selectedTech.id] ? [...prev[selectedTech.id]] : [];
+                const dayIndex = techSchedule.findIndex(d => d.date === bookingDate);
+                if (dayIndex >= 0) {
+                    const newSlots = techSchedule[dayIndex].slots.map(slot =>
+                        slot.time === bookingTime ? { ...slot, isBooked: true } : slot
+                    );
+                    techSchedule[dayIndex] = { ...techSchedule[dayIndex], slots: newSlots };
+                    updatedDaySchedule = techSchedule[dayIndex];
+                }
+                return { ...prev, [selectedTech.id]: techSchedule };
+            });
+
+            if (updatedDaySchedule) {
+                await SupabaseService.updateSchedule(selectedTech.id, updatedDaySchedule);
             }
-            return { ...prev, [selectedTech.id]: techSchedule };
-        });
 
-        setNotification({ msg: 'Agendamento confirmado com sucesso!', type: 'success' });
-        setCurrentView('CLIENT_APPOINTMENTS');
+            setAppointments(prev => [newAppointment, ...prev]);
+            setNotification({ msg: 'Agendamento confirmado com sucesso!', type: 'success' });
+            setCurrentView('CLIENT_APPOINTMENTS');
 
-        logService.info(
-            'APPOINTMENT_CREATED',
-            currentUser.id,
-            currentUser.email,
-            { techId: selectedTech.id, date: bookingDate, time: bookingTime }
-        );
+            logService.info(
+                'APPOINTMENT_CREATED',
+                currentUser.id,
+                currentUser.email,
+                { techId: selectedTech.id, date: bookingDate, time: bookingTime }
+            );
+        } catch (error) {
+            console.error('Booking error:', error);
+            setNotification({ msg: 'Erro ao confirmar agendamento.', type: 'error' });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleCancelAppointment = (aptId: string, techId: string, date: string, time: string) => {
+    const handleCancelAppointment = async (aptId: string, techId: string, date: string, time: string) => {
         // Robustness Check: 24h rule for clients
         if (currentUser?.role === UserRole.CLIENT) {
             const canCancel = checkCanCancel(date, time);
@@ -392,54 +415,86 @@ export default function App() {
             }
         }
 
-        setAppointments(prev => prev.map(a =>
-            a.id === aptId ? { ...a, status: AppointmentStatus.CANCELLED } : a
-        ));
+        try {
+            setIsLoading(true);
+            await SupabaseService.updateAppointmentStatus(aptId, AppointmentStatus.CANCELLED);
 
-        setTechSchedules(prev => {
-            const techSchedule = prev[techId] ? [...prev[techId]] : [];
-            const dayIndex = techSchedule.findIndex(d => d.date === date);
-            if (dayIndex >= 0) {
-                const newSlots = techSchedule[dayIndex].slots.map(slot =>
-                    slot.time === time ? { ...slot, isBooked: false } : slot
-                );
-                techSchedule[dayIndex] = { ...techSchedule[dayIndex], slots: newSlots };
+            setAppointments(prev => prev.map(a =>
+                a.id === aptId ? { ...a, status: AppointmentStatus.CANCELLED } : a
+            ));
+
+            let updatedDaySchedule: DaySchedule | null = null;
+
+            setTechSchedules(prev => {
+                const techSchedule = prev[techId] ? [...prev[techId]] : [];
+                const dayIndex = techSchedule.findIndex(d => d.date === date);
+                if (dayIndex >= 0) {
+                    const newSlots = techSchedule[dayIndex].slots.map(slot =>
+                        slot.time === time ? { ...slot, isBooked: false } : slot
+                    );
+                    techSchedule[dayIndex] = { ...techSchedule[dayIndex], slots: newSlots };
+                    updatedDaySchedule = techSchedule[dayIndex];
+                }
+                return { ...prev, [techId]: techSchedule };
+            });
+
+            if (updatedDaySchedule) {
+                await SupabaseService.updateSchedule(techId, updatedDaySchedule);
             }
-            return { ...prev, [techId]: techSchedule };
-        });
 
-        setNotification({ msg: 'Agendamento cancelado.', type: 'success' });
+            setNotification({ msg: 'Agendamento cancelado.', type: 'success' });
 
-        logService.warning(
-            'APPOINTMENT_CANCELLED',
-            currentUser?.id,
-            currentUser?.email,
-            { appointmentId: aptId, techId, date, time }
-        );
+            logService.warning(
+                'APPOINTMENT_CANCELLED',
+                currentUser?.id,
+                currentUser?.email,
+                { appointmentId: aptId, techId, date, time }
+            );
+        } catch (error) {
+            console.error('Cancel error:', error);
+            setNotification({ msg: 'Erro ao cancelar agendamento.', type: 'error' });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleCompleteAppointment = (aptId: string) => {
-        setAppointments(prev => prev.map(a =>
-            a.id === aptId ? { ...a, status: AppointmentStatus.COMPLETED } : a
-        ));
-        setNotification({ msg: 'Atendimento concluído com sucesso!', type: 'success' });
-        logService.info('APPOINTMENT_COMPLETED', currentUser?.id, currentUser?.email, { appointmentId: aptId });
+    const handleCompleteAppointment = async (aptId: string) => {
+        try {
+            await SupabaseService.updateAppointmentStatus(aptId, AppointmentStatus.COMPLETED);
+            setAppointments(prev => prev.map(a =>
+                a.id === aptId ? { ...a, status: AppointmentStatus.COMPLETED } : a
+            ));
+            setNotification({ msg: 'Atendimento concluído com sucesso!', type: 'success' });
+            logService.info('APPOINTMENT_COMPLETED', currentUser?.id, currentUser?.email, { appointmentId: aptId });
+        } catch (error) {
+            setNotification({ msg: 'Erro ao atualizar status.', type: 'error' });
+        }
     };
 
-    const handleReportIssue = (aptId: string, reason: string) => {
-        setAppointments(prev => prev.map(a =>
-            a.id === aptId ? { ...a, status: AppointmentStatus.DISPUTED, issueDescription: reason } : a
-        ));
-        setNotification({ msg: 'Problema reportado. Entraremos em contato.', type: 'info' });
-        logService.error('ISSUE_REPORTED', currentUser?.id, currentUser?.email, { appointmentId: aptId, reason });
+    const handleReportIssue = async (aptId: string, reason: string) => {
+        try {
+            await SupabaseService.updateAppointmentStatus(aptId, AppointmentStatus.DISPUTED, reason);
+            setAppointments(prev => prev.map(a =>
+                a.id === aptId ? { ...a, status: AppointmentStatus.DISPUTED, issueDescription: reason } : a
+            ));
+            setNotification({ msg: 'Problema reportado. Entraremos em contato.', type: 'info' });
+            logService.error('ISSUE_REPORTED', currentUser?.id, currentUser?.email, { appointmentId: aptId, reason });
+        } catch (error) {
+            setNotification({ msg: 'Erro ao reportar problema.', type: 'error' });
+        }
     };
 
-    const handleReportNoShow = (aptId: string) => {
-        setAppointments(prev => prev.map(a =>
-            a.id === aptId ? { ...a, status: AppointmentStatus.NO_SHOW } : a
-        ));
-        setNotification({ msg: 'No-show registrado.', type: 'info' });
-        logService.warning('NO_SHOW_REPORTED', currentUser?.id, currentUser?.email, { appointmentId: aptId });
+    const handleReportNoShow = async (aptId: string) => {
+        try {
+            await SupabaseService.updateAppointmentStatus(aptId, AppointmentStatus.NO_SHOW);
+            setAppointments(prev => prev.map(a =>
+                a.id === aptId ? { ...a, status: AppointmentStatus.NO_SHOW } : a
+            ));
+            setNotification({ msg: 'No-show registrado.', type: 'info' });
+            logService.warning('NO_SHOW_REPORTED', currentUser?.id, currentUser?.email, { appointmentId: aptId });
+        } catch (error) {
+            setNotification({ msg: 'Erro ao registrar no-show.', type: 'error' });
+        }
     };
 
     const checkCanCancel = (dateStr: string, timeStr: string) => {
@@ -452,105 +507,139 @@ export default function App() {
         return diffHours >= 24;
     };
 
-    const handleSubmitReview = (rating: number, comment: string, tags: string[]) => {
+    const handleSubmitReview = async (rating: number, comment: string, tags: string[]) => {
         if (!currentUser || !selectedTech) return;
 
-        if (editingReview) {
-            setReviews(prev => prev.map(r =>
-                r.id === editingReview.id
-                    ? { ...r, rating, comment, tags, updatedAt: new Date().toISOString() }
-                    : r
-            ));
+        try {
+            setIsLoading(true);
+            if (editingReview) {
+                const updatedReview = {
+                    ...editingReview,
+                    rating,
+                    comment,
+                    tags,
+                    updatedAt: new Date().toISOString()
+                };
 
-            // Recalculate rating
-            const techReviews = reviews.map(r =>
-                r.id === editingReview.id
-                    ? { ...r, rating }
-                    : r
-            ).filter(r => r.techId === selectedTech.id);
+                await SupabaseService.updateReview(updatedReview);
 
-            const newRating = techReviews.reduce((acc, r) => acc + r.rating, 0) / techReviews.length;
+                setReviews(prev => prev.map(r =>
+                    r.id === editingReview.id ? updatedReview : r
+                ));
 
-            setUsersDb(prev => prev.map(u =>
-                u.id === selectedTech.id ? { ...u, rating: newRating } : u
-            ));
+                // Recalculate rating
+                const techReviews = reviews.map(r =>
+                    r.id === editingReview.id ? updatedReview : r
+                ).filter(r => r.techId === selectedTech.id);
 
-            setNotification({ msg: 'Avaliação atualizada com sucesso!', type: 'success' });
-            setEditingReview(null);
-        } else {
-            // Verify eligibility: User must have a COMPLETED appointment with the technician
-            const hasCompletedAppointment = appointments.some(
-                apt => apt.clientId === currentUser.id &&
-                    apt.techId === selectedTech.id &&
-                    apt.status === AppointmentStatus.COMPLETED
-            );
+                const newRating = techReviews.reduce((acc, r) => acc + r.rating, 0) / techReviews.length;
 
-            if (!hasCompletedAppointment) {
-                setNotification({
-                    msg: 'Você só pode avaliar técnicos que já te atenderam.',
-                    type: 'error'
-                });
-                return;
+                const updatedTech = { ...selectedTech, rating: newRating };
+                await SupabaseService.updateUser(updatedTech);
+
+                setUsersDb(prev => prev.map(u =>
+                    u.id === selectedTech.id ? { ...u, rating: newRating } : u
+                ));
+
+                setNotification({ msg: 'Avaliação atualizada com sucesso!', type: 'success' });
+                setEditingReview(null);
+            } else {
+                // Verify eligibility: User must have a COMPLETED appointment with the technician
+                const hasCompletedAppointment = appointments.some(
+                    apt => apt.clientId === currentUser.id &&
+                        apt.techId === selectedTech.id &&
+                        apt.status === AppointmentStatus.COMPLETED
+                );
+
+                if (!hasCompletedAppointment) {
+                    setNotification({
+                        msg: 'Você só pode avaliar técnicos que já te atenderam.',
+                        type: 'error'
+                    });
+                    return;
+                }
+
+                // Check if user already reviewed this tech
+                const alreadyReviewed = reviews.some(
+                    r => r.clientId === currentUser.id && r.techId === selectedTech.id
+                );
+
+                if (alreadyReviewed) {
+                    setNotification({
+                        msg: 'Você já avaliou este técnico.',
+                        type: 'error'
+                    });
+                    return;
+                }
+
+                // Create new review
+                const newReview: Review = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    clientId: currentUser.id,
+                    clientName: currentUser.name,
+                    techId: selectedTech.id,
+                    rating,
+                    comment,
+                    tags,
+                    createdAt: new Date().toISOString()
+                };
+
+                await SupabaseService.createReview(newReview);
+
+                const updatedReviews = [...reviews, newReview];
+                setReviews(updatedReviews);
+
+                // Update tech rating
+                const techReviews = updatedReviews.filter(r => r.techId === selectedTech.id);
+                const newRating = techReviews.reduce((acc, r) => acc + r.rating, 0) / techReviews.length;
+
+                const updatedTech = { ...selectedTech, rating: newRating };
+                await SupabaseService.updateUser(updatedTech);
+
+                setUsersDb(prev => prev.map(u =>
+                    u.id === selectedTech.id ? { ...u, rating: newRating } : u
+                ));
+
+                setNotification({ msg: 'Avaliação enviada com sucesso!', type: 'success' });
             }
-
-            // Check if user already reviewed this tech
-            const alreadyReviewed = reviews.some(
-                r => r.clientId === currentUser.id && r.techId === selectedTech.id
-            );
-
-            if (alreadyReviewed) {
-                setNotification({
-                    msg: 'Você já avaliou este técnico.',
-                    type: 'error'
-                });
-                return;
-            }
-
-            // Create new review
-            const newReview: Review = {
-                id: Math.random().toString(36).substr(2, 9),
-                clientId: currentUser.id,
-                clientName: currentUser.name,
-                techId: selectedTech.id,
-                rating,
-                comment,
-                tags,
-                createdAt: new Date().toISOString()
-            };
-
-            const updatedReviews = [...reviews, newReview];
-            setReviews(updatedReviews);
-
-            // Update tech rating
-            const techReviews = updatedReviews.filter(r => r.techId === selectedTech.id);
-            const newRating = techReviews.reduce((acc, r) => acc + r.rating, 0) / techReviews.length;
-
-            setUsersDb(prev => prev.map(u =>
-                u.id === selectedTech.id ? { ...u, rating: newRating } : u
-            ));
-
-            setNotification({ msg: 'Avaliação enviada com sucesso!', type: 'success' });
+            setShowReviewForm(false);
+        } catch (error) {
+            console.error('Review error:', error);
+            setNotification({ msg: 'Erro ao salvar avaliação.', type: 'error' });
+        } finally {
+            setIsLoading(false);
         }
-        setShowReviewForm(false);
     };
 
-    const handleReplyReview = (reviewId: string, replyText: string) => {
-        setReviews(prev => prev.map(r =>
-            r.id === reviewId
-                ? { ...r, reply: { text: replyText, createdAt: new Date().toISOString() } }
-                : r
-        ));
-        setNotification({ msg: 'Resposta enviada com sucesso!', type: 'success' });
+    const handleReplyReview = async (reviewId: string, replyText: string) => {
+        try {
+            const review = reviews.find(r => r.id === reviewId);
+            if (review) {
+                const updatedReview = {
+                    ...review,
+                    reply: { text: replyText, createdAt: new Date().toISOString() }
+                };
+                await SupabaseService.updateReview(updatedReview);
+
+                setReviews(prev => prev.map(r =>
+                    r.id === reviewId ? updatedReview : r
+                ));
+                setNotification({ msg: 'Resposta enviada com sucesso!', type: 'success' });
+            }
+        } catch (error) {
+            setNotification({ msg: 'Erro ao enviar resposta.', type: 'error' });
+        }
     };
 
-    const handleDeleteReview = (reviewId: string) => {
+    const handleDeleteReview = async (reviewId: string) => {
         if (confirm('Tem certeza que deseja excluir sua avaliação?')) {
-            setReviews(prev => prev.filter(r => r.id !== reviewId));
-            setNotification({ msg: 'Avaliação excluída.', type: 'success' });
-
-            // Recalculate rating would be ideal here too, but for simplicity skipping strict sync for now or doing it:
-            // Actually let's do it properly if we can access selectedTech, but selectedTech might not be set if we are deleting from a list?
-            // In Client Profile selectedTech is set.
+            try {
+                await SupabaseService.deleteReview(reviewId);
+                setReviews(prev => prev.filter(r => r.id !== reviewId));
+                setNotification({ msg: 'Avaliação excluída.', type: 'success' });
+            } catch (error) {
+                setNotification({ msg: 'Erro ao excluir avaliação.', type: 'error' });
+            }
         }
     };
 
