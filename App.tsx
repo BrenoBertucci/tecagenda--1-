@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { Layout } from './components/Layout';
-import { LoginView } from './components/LoginView'; // We need to refactor this to use router
+import { LoginView } from './components/LoginView';
 import { RegisterSelectionView } from './components/RegisterSelectionView';
 import { RegisterClientView } from './components/RegisterClientView';
 import { RegisterTechView } from './components/RegisterTechView';
@@ -12,11 +12,12 @@ import { TechProfile } from './pages/TechProfile';
 import { ClientBooking } from './pages/ClientBooking';
 import { ClientAppointments } from './pages/ClientAppointments';
 import { TechDashboardPage } from './pages/TechDashboardPage';
-import { SettingsView } from './components/SettingsView'; // Needs refactor
+import { SettingsView } from './components/SettingsView';
 import { TermsView, PrivacyView } from './components/LegalDocs';
 import { UserRole } from './types';
-import { AdminDashboard } from './components/AdminDashboard'; // Needs check
 import { AboutView } from './components/AboutView';
+import { useData } from './contexts/DataContext';
+import { useNavigate } from 'react-router-dom';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }: { children: JSX.Element, allowedRoles?: UserRole[] }) => {
@@ -117,7 +118,6 @@ export default function App() {
 }
 
 // Wrapper to adapt SettingsView to new Context
-import { useData } from './contexts/DataContext';
 const SettingsViewWrapper = () => {
     const { user, updateProfile, signOut } = useAuth();
     const { usersDb } = useData();
