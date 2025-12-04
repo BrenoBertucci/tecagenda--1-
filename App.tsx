@@ -36,6 +36,7 @@ import { AboutView } from './components/AboutView';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { FloatingAccessibilityMenu } from './components/FloatingAccessibilityMenu';
 
 // --- GLOBAL STATE TYPES ---
 
@@ -738,6 +739,7 @@ export default function App() {
         <ThemeProvider>
             <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans relative text-slate-900 dark:text-slate-100 pb-safe transition-colors">
                 <SpeedInsights />
+                <FloatingAccessibilityMenu />
                 {currentUser && (
                     <ActionRequiredBanner
                         appointments={appointments.filter(a =>
@@ -751,13 +753,15 @@ export default function App() {
                 )}
 
                 {/* Notification Toast */}
-                {notification && (
-                    <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-                        }`}>
-                        {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                        <span className="font-medium">{notification.msg}</span>
-                    </div>
-                )}
+                {
+                    notification && (
+                        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                            }`}>
+                            {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                            <span className="font-medium">{notification.msg}</span>
+                        </div>
+                    )
+                }
 
                 {currentView !== 'LOGIN' && !currentView.startsWith('REGISTER') && <Header />}
 
@@ -1054,50 +1058,58 @@ export default function App() {
                     )}
                 </main>
 
-                {currentView === 'ADMIN_DASHBOARD' && (
-                    <AdminDashboard
-                        users={usersDb}
-                        appointments={appointments}
-                        reviews={reviews}
-                        logService={logService}
-                        onLogout={handleLogout}
-                        onResolveDispute={handleResolveDispute}
-                    />
-                )}
+                {
+                    currentView === 'ADMIN_DASHBOARD' && (
+                        <AdminDashboard
+                            users={usersDb}
+                            appointments={appointments}
+                            reviews={reviews}
+                            logService={logService}
+                            onLogout={handleLogout}
+                            onResolveDispute={handleResolveDispute}
+                        />
+                    )
+                }
 
                 {currentView === 'TERMS' && <TermsView onBack={() => setCurrentView(currentUser ? 'SETTINGS' : 'LOGIN')} />}
                 {currentView === 'PRIVACY' && <PrivacyView onBack={() => setCurrentView(currentUser ? 'SETTINGS' : 'LOGIN')} />}
 
                 {/* Global Footer (visible on most pages) */}
-                {!['LOGIN', 'ADMIN_LOGIN', 'REGISTER_SELECTION', 'REGISTER_CLIENT', 'REGISTER_TECH'].includes(currentView) && (
-                    <Footer onNavigate={setCurrentView} />
-                )}
+                {
+                    !['LOGIN', 'ADMIN_LOGIN', 'REGISTER_SELECTION', 'REGISTER_CLIENT', 'REGISTER_TECH'].includes(currentView) && (
+                        <Footer onNavigate={setCurrentView} />
+                    )
+                }
                 {/* Special lightweight footer for auth pages if needed, or just omit */}
-                {['LOGIN', 'REGISTER_SELECTION'].includes(currentView) && (
-                    <div className="py-4 text-center text-xs text-slate-600">
-                        <button onClick={() => setCurrentView('TERMS')} className="hover:underline mr-4">Termos de Uso</button>
-                        <button onClick={() => setCurrentView('PRIVACY')} className="hover:underline">Política de Privacidade</button>
-                    </div>
-                )}
+                {
+                    ['LOGIN', 'REGISTER_SELECTION'].includes(currentView) && (
+                        <div className="py-4 text-center text-xs text-slate-600">
+                            <button onClick={() => setCurrentView('TERMS')} className="hover:underline mr-4">Termos de Uso</button>
+                            <button onClick={() => setCurrentView('PRIVACY')} className="hover:underline">Política de Privacidade</button>
+                        </div>
+                    )
+                }
 
-                {currentUser?.role === UserRole.CLIENT && currentView !== 'SETTINGS' && (
-                    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg transition-colors">
-                        <button
-                            onClick={() => setCurrentView('CLIENT_HOME')}
-                            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
-                        >
-                            <Search size={24} />
-                            <span className="text-xs font-medium mt-1">Buscar</span>
-                        </button>
-                        <button
-                            onClick={() => setCurrentView('CLIENT_APPOINTMENTS')}
-                            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
-                        >
-                            <History size={24} />
-                            <span className="text-xs font-medium mt-1">Agenda</span>
-                        </button>
-                    </nav>
-                )}
+                {
+                    currentUser?.role === UserRole.CLIENT && currentView !== 'SETTINGS' && (
+                        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg transition-colors">
+                            <button
+                                onClick={() => setCurrentView('CLIENT_HOME')}
+                                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <Search size={24} />
+                                <span className="text-xs font-medium mt-1">Buscar</span>
+                            </button>
+                            <button
+                                onClick={() => setCurrentView('CLIENT_APPOINTMENTS')}
+                                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <History size={24} />
+                                <span className="text-xs font-medium mt-1">Agenda</span>
+                            </button>
+                        </nav>
+                    )
+                }
 
                 {/* Global Loading Overlay */}
                 <LoadingOverlay isVisible={isSessionLoading || (isLoading && (currentView === 'LOGIN' || currentView.startsWith('REGISTER')))} />
@@ -1145,7 +1157,7 @@ export default function App() {
                     onConfirm={handleLogout}
                 />
 
-            </div>
-        </ThemeProvider>
+            </div >
+        </ThemeProvider >
     );
 }
