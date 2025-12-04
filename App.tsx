@@ -76,7 +76,7 @@ const ClientHome = ({ usersDb, onSelectTech }: { usersDb: DbUser[], onSelectTech
                     placeholder="Buscar por especialidade..."
                     className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm outline-none transition-all"
                 />
-                <Search className="absolute left-3 top-3.5 text-slate-400" size={20} aria-hidden="true" />
+                <Search className="absolute left-3 top-3.5 text-slate-400" size={20} aria-hidden="true" tabIndex={-1} />
             </div>
 
             <div className="space-y-4">
