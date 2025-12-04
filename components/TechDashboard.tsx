@@ -4,6 +4,7 @@ import { Button } from './Button';
 import { ReviewList } from './ReviewList';
 import { Calendar, Clock, User as UserIcon, AlertCircle } from 'lucide-react';
 import { ScheduleManager } from './schedules/ScheduleManager';
+import { toggleSlotBlock } from '../core/domainLogic';
 
 interface TechDashboardProps {
     currentUser: User;
@@ -34,16 +35,10 @@ export const TechDashboard = ({
     const techReviews = reviews.filter((r: Review) => r.techId === currentUser.id);
 
     const handleToggleSlotBlock = (date: string, time: string) => {
-        setTechSchedules((prev: any) => {
-            const ts = prev[currentUser.id] ? [...prev[currentUser.id]] : [];
-            const dayIndex = ts.findIndex((d: DaySchedule) => d.date === date);
-            if (dayIndex >= 0) {
-                const newSlots = ts[dayIndex].slots.map((slot: any) =>
-                    slot.time === time ? { ...slot, isBlocked: !slot.isBlocked } : slot
-                );
-                ts[dayIndex] = { ...ts[dayIndex], slots: newSlots };
-            }
-            return { ...prev, [currentUser.id]: ts };
+        setTechSchedules((prev) => {
+            const techSchedule = prev[currentUser.id] ? [...prev[currentUser.id]] : [];
+            const { updatedSchedules } = toggleSlotBlock(techSchedule, date, time);
+            return { ...prev, [currentUser.id]: updatedSchedules };
         });
     };
 

@@ -2,6 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Technician, Appointment, Review, UserRole, AppointmentStatus, DaySchedule, StructuredLog, DbUser } from './types';
 import { logService } from './services/LogService';
 import { SupabaseService } from './services/SupabaseService';
+import {
+    isSlotAvailable,
+    createAppointmentObject,
+    canClientCancel,
+    updateTechScheduleWithBooking,
+    validateReviewEligibility,
+    createReviewObject,
+    calculateAverageRating
+} from './core/domainLogic';
 import { generateMockSchedule } from './constants';
 import { Button } from './components/Button';
 import {
@@ -23,6 +32,8 @@ import { TermsView, PrivacyView } from './components/LegalDocs';
 import { Footer } from './components/Footer';
 import { TechDashboard } from './components/TechDashboard';
 import { AboutView } from './components/AboutView';
+import { ConfirmationModal } from './components/ConfirmationModal';
+import { LoadingOverlay } from './components/LoadingOverlay';
 
 // --- GLOBAL STATE TYPES ---
 
@@ -202,6 +213,10 @@ export default function App() {
     const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
+    // Modal states
+    const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
+    const [logoutConfirmation, setLogoutConfirmation] = useState<boolean>(false);
+
     // Initialize Data
     useEffect(() => {
         const fetchData = async () => {
@@ -290,10 +305,18 @@ export default function App() {
     };
 
     const handleLogout = async () => {
-        await SupabaseService.signOut();
-        setCurrentUser(null);
-        setCurrentView('LOGIN');
-        logService.info('LOGOUT', currentUser?.id, currentUser?.email);
+        setLogoutConfirmation(false);
+        try {
+            setIsLoading(true);
+            await SupabaseService.signOut();
+            setCurrentUser(null);
+            setCurrentView('LOGIN');
+            logService.info('LOGOUT', currentUser?.id, currentUser?.email);
+        } catch (error) {
+            console.error('Logout error', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
 
@@ -348,54 +371,39 @@ export default function App() {
     const handleConfirmBooking = async (model: string, issue: string) => {
         if (!selectedTech || !currentUser) return;
 
-        // Robustness Check: Verify if slot is still available
         const techSchedule = techSchedules[selectedTech.id] || [];
-        const daySchedule = techSchedule.find(d => d.date === bookingDate);
-        const slot = daySchedule?.slots.find(s => s.time === bookingTime);
 
-        if (!slot || slot.isBooked || slot.isBlocked) {
+        if (!isSlotAvailable(techSchedule, bookingDate, bookingTime)) {
             setNotification({ msg: 'Este horário não está mais disponível. Por favor, escolha outro.', type: 'error' });
             return;
         }
 
-        const newAppointment: Appointment = {
-            id: Math.random().toString(36).substr(2, 9),
-            clientId: currentUser.id,
-            clientName: currentUser.name,
-            techId: selectedTech.id,
-            techName: selectedTech.name,
-            date: bookingDate,
-            time: bookingTime,
-            deviceModel: model,
-            issueDescription: issue,
-            status: AppointmentStatus.CONFIRMED,
-            createdAt: new Date().toISOString()
-        };
+        const newAppointment = createAppointmentObject(
+            currentUser,
+            selectedTech,
+            bookingDate,
+            bookingTime,
+            model,
+            issue
+        );
 
         try {
+            // Calculate new schedule locally
+            const { updatedSchedules, updatedDay } = updateTechScheduleWithBooking(
+                techSchedule,
+                bookingDate,
+                bookingTime,
+                true
+            );
+
             setIsLoading(true);
             await SupabaseService.createAppointment(newAppointment);
 
-            // Update Schedule
-            let updatedDaySchedule: DaySchedule | null = null;
-
-            setTechSchedules(prev => {
-                const techSchedule = prev[selectedTech.id] ? [...prev[selectedTech.id]] : [];
-                const dayIndex = techSchedule.findIndex(d => d.date === bookingDate);
-                if (dayIndex >= 0) {
-                    const newSlots = techSchedule[dayIndex].slots.map(slot =>
-                        slot.time === bookingTime ? { ...slot, isBooked: true } : slot
-                    );
-                    techSchedule[dayIndex] = { ...techSchedule[dayIndex], slots: newSlots };
-                    updatedDaySchedule = techSchedule[dayIndex];
-                }
-                return { ...prev, [selectedTech.id]: techSchedule };
-            });
-
-            if (updatedDaySchedule) {
-                await SupabaseService.updateSchedule(selectedTech.id, updatedDaySchedule);
+            if (updatedDay) {
+                await SupabaseService.updateSchedule(selectedTech.id, updatedDay);
             }
 
+            setTechSchedules(prev => ({ ...prev, [selectedTech.id]: updatedSchedules }));
             setAppointments(prev => [newAppointment, ...prev]);
             setNotification({ msg: 'Agendamento confirmado com sucesso!', type: 'success' });
             setCurrentView('CLIENT_APPOINTMENTS');
@@ -418,39 +426,33 @@ export default function App() {
     const handleCancelAppointment = async (aptId: string, techId: string, date: string, time: string) => {
         // Robustness Check: 24h rule for clients
         if (currentUser?.role === UserRole.CLIENT) {
-            const canCancel = checkCanCancel(date, time);
-            if (!canCancel) {
+            if (!canClientCancel(date, time)) {
                 setNotification({ msg: 'Cancelamento não permitido com menos de 24h de antecedência.', type: 'error' });
                 return;
             }
         }
 
         try {
+            const techSchedule = techSchedules[techId] || [];
+            const { updatedSchedules, updatedDay } = updateTechScheduleWithBooking(
+                techSchedule,
+                date,
+                time,
+                false
+            );
+
             setIsLoading(true);
             await SupabaseService.updateAppointmentStatus(aptId, AppointmentStatus.CANCELLED);
+
+            if (updatedDay) {
+                await SupabaseService.updateSchedule(techId, updatedDay);
+            }
+
+            setTechSchedules(prev => ({ ...prev, [techId]: updatedSchedules }));
 
             setAppointments(prev => prev.map(a =>
                 a.id === aptId ? { ...a, status: AppointmentStatus.CANCELLED } : a
             ));
-
-            let updatedDaySchedule: DaySchedule | null = null;
-
-            setTechSchedules(prev => {
-                const techSchedule = prev[techId] ? [...prev[techId]] : [];
-                const dayIndex = techSchedule.findIndex(d => d.date === date);
-                if (dayIndex >= 0) {
-                    const newSlots = techSchedule[dayIndex].slots.map(slot =>
-                        slot.time === time ? { ...slot, isBooked: false } : slot
-                    );
-                    techSchedule[dayIndex] = { ...techSchedule[dayIndex], slots: newSlots };
-                    updatedDaySchedule = techSchedule[dayIndex];
-                }
-                return { ...prev, [techId]: techSchedule };
-            });
-
-            if (updatedDaySchedule) {
-                await SupabaseService.updateSchedule(techId, updatedDaySchedule);
-            }
 
             setNotification({ msg: 'Agendamento cancelado.', type: 'success' });
 
@@ -509,13 +511,7 @@ export default function App() {
     };
 
     const checkCanCancel = (dateStr: string, timeStr: string) => {
-        const [year, month, day] = dateStr.split('-').map(Number);
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        const aptDate = new Date(year, month - 1, day, hours, minutes);
-        const now = new Date();
-        const diffMs = aptDate.getTime() - now.getTime();
-        const diffHours = diffMs / (1000 * 60 * 60);
-        return diffHours >= 24;
+        return canClientCancel(dateStr, timeStr);
     };
 
     const handleSubmitReview = async (rating: number, comment: string, tags: string[]) => {
@@ -523,8 +519,11 @@ export default function App() {
 
         try {
             setIsLoading(true);
+            let updatedReviews = [...reviews];
+            let reviewToProcess: Review;
+
             if (editingReview) {
-                const updatedReview = {
+                reviewToProcess = {
                     ...editingReview,
                     rating,
                     comment,
@@ -532,88 +531,36 @@ export default function App() {
                     updatedAt: new Date().toISOString()
                 };
 
-                await SupabaseService.updateReview(updatedReview);
-
-                setReviews(prev => prev.map(r =>
-                    r.id === editingReview.id ? updatedReview : r
-                ));
-
-                // Recalculate rating
-                const techReviews = reviews.map(r =>
-                    r.id === editingReview.id ? updatedReview : r
-                ).filter(r => r.techId === selectedTech.id);
-
-                const newRating = techReviews.reduce((acc, r) => acc + r.rating, 0) / techReviews.length;
-
-                const updatedTech = { ...selectedTech, rating: newRating };
-                await SupabaseService.updateUser(updatedTech);
-
-                setUsersDb(prev => prev.map(u =>
-                    u.id === selectedTech.id ? { ...u, rating: newRating } : u
-                ));
-
-                setNotification({ msg: 'Avaliação atualizada com sucesso!', type: 'success' });
+                await SupabaseService.updateReview(reviewToProcess);
+                updatedReviews = reviews.map(r => r.id === editingReview.id ? reviewToProcess : r);
                 setEditingReview(null);
+                setNotification({ msg: 'Avaliação atualizada com sucesso!', type: 'success' });
+
             } else {
-                // Verify eligibility: User must have a COMPLETED appointment with the technician
-                const hasCompletedAppointment = appointments.some(
-                    apt => apt.clientId === currentUser.id &&
-                        apt.techId === selectedTech.id &&
-                        apt.status === AppointmentStatus.COMPLETED
-                );
-
-                if (!hasCompletedAppointment) {
-                    setNotification({
-                        msg: 'Você só pode avaliar técnicos que já te atenderam.',
-                        type: 'error'
-                    });
+                const eligibility = validateReviewEligibility(appointments, reviews, currentUser.id, selectedTech.id);
+                if (!eligibility.allowed) {
+                    setNotification({ msg: eligibility.reason || 'Erro na validação.', type: 'error' });
                     return;
                 }
 
-                // Check if user already reviewed this tech
-                const alreadyReviewed = reviews.some(
-                    r => r.clientId === currentUser.id && r.techId === selectedTech.id
-                );
+                reviewToProcess = createReviewObject(currentUser, selectedTech.id, rating, comment, tags);
 
-                if (alreadyReviewed) {
-                    setNotification({
-                        msg: 'Você já avaliou este técnico.',
-                        type: 'error'
-                    });
-                    return;
-                }
-
-                // Create new review
-                const newReview: Review = {
-                    id: Math.random().toString(36).substr(2, 9),
-                    clientId: currentUser.id,
-                    clientName: currentUser.name,
-                    techId: selectedTech.id,
-                    rating,
-                    comment,
-                    tags,
-                    createdAt: new Date().toISOString()
-                };
-
-                await SupabaseService.createReview(newReview);
-
-                const updatedReviews = [...reviews, newReview];
-                setReviews(updatedReviews);
-
-                // Update tech rating
-                const techReviews = updatedReviews.filter(r => r.techId === selectedTech.id);
-                const newRating = techReviews.reduce((acc, r) => acc + r.rating, 0) / techReviews.length;
-
-                const updatedTech = { ...selectedTech, rating: newRating };
-                await SupabaseService.updateUser(updatedTech);
-
-                setUsersDb(prev => prev.map(u =>
-                    u.id === selectedTech.id ? { ...u, rating: newRating } : u
-                ));
-
+                await SupabaseService.createReview(reviewToProcess);
+                updatedReviews = [...reviews, reviewToProcess];
                 setNotification({ msg: 'Avaliação enviada com sucesso!', type: 'success' });
             }
+
+            setReviews(updatedReviews);
+
+            // Recalculate rating
+            const techReviews = updatedReviews.filter(r => r.techId === selectedTech.id);
+            const newRating = calculateAverageRating(techReviews);
+            const updatedTech = { ...selectedTech, rating: newRating };
+
+            await SupabaseService.updateUser(updatedTech);
+            setUsersDb(prev => prev.map(u => u.id === selectedTech.id ? { ...u, rating: newRating } : u));
             setShowReviewForm(false);
+
         } catch (error) {
             console.error('Review error:', error);
             setNotification({ msg: 'Erro ao salvar avaliação.', type: 'error' });
@@ -643,14 +590,21 @@ export default function App() {
     };
 
     const handleDeleteReview = async (reviewId: string) => {
-        if (confirm('Tem certeza que deseja excluir sua avaliação?')) {
-            try {
-                await SupabaseService.deleteReview(reviewId);
-                setReviews(prev => prev.filter(r => r.id !== reviewId));
-                setNotification({ msg: 'Avaliação excluída.', type: 'success' });
-            } catch (error) {
-                setNotification({ msg: 'Erro ao excluir avaliação.', type: 'error' });
-            }
+        setReviewToDelete(reviewId);
+    };
+
+    const confirmDeleteReview = async () => {
+        if (!reviewToDelete) return;
+        try {
+            setIsLoading(true);
+            await SupabaseService.deleteReview(reviewToDelete);
+            setReviews(prev => prev.filter(r => r.id !== reviewToDelete));
+            setNotification({ msg: 'Avaliação excluída.', type: 'success' });
+        } catch (error) {
+            setNotification({ msg: 'Erro ao excluir avaliação.', type: 'error' });
+        } finally {
+            setIsLoading(false);
+            setReviewToDelete(null);
         }
     };
 
@@ -732,7 +686,7 @@ export default function App() {
                     >
                         <Settings size={20} />
                     </button>
-                    <button onClick={handleLogout} className="text-slate-500 hover:text-red-600 transition-colors" title="Sair">
+                    <button onClick={() => setLogoutConfirmation(true)} className="text-slate-500 hover:text-red-600 transition-colors" title="Sair">
                         <LogOut size={20} />
                     </button>
                 </div>
@@ -1103,46 +1057,52 @@ export default function App() {
                 </nav>
             )}
 
-            {/* Cancellation Modal */}
-            {appointmentToCancel && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4 animate-scale-in">
-                        <div className="text-center">
-                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                                <AlertCircle className="h-6 w-6 text-red-600" />
-                            </div>
-                            <h3 className="text-lg font-medium text-slate-900">Cancelar Agendamento</h3>
-                            <p className="text-sm text-slate-500 mt-2">
-                                Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.
-                            </p>
-                        </div>
-                        <div className="flex gap-3 mt-6">
-                            <Button
-                                variant="secondary"
-                                fullWidth
-                                onClick={() => setAppointmentToCancel(null)}
-                            >
-                                Voltar
-                            </Button>
-                            <Button
-                                variant="danger"
-                                fullWidth
-                                onClick={() => {
-                                    handleCancelAppointment(
-                                        appointmentToCancel.id,
-                                        appointmentToCancel.techId,
-                                        appointmentToCancel.date,
-                                        appointmentToCancel.time
-                                    );
-                                    setAppointmentToCancel(null);
-                                }}
-                            >
-                                Sim, Cancelar
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Global Loading Overlay */}
+            <LoadingOverlay isVisible={isLoading && (currentView === 'LOGIN' || currentView.startsWith('REGISTER'))} />
+
+            {/* Modals */}
+            <ConfirmationModal
+                isOpen={!!appointmentToCancel}
+                title="Cancelar Agendamento"
+                message="Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita."
+                confirmLabel="Sim, Cancelar"
+                variant="danger"
+                onCancel={() => setAppointmentToCancel(null)}
+                onConfirm={() => {
+                    if (appointmentToCancel) {
+                        handleCancelAppointment(
+                            appointmentToCancel.id,
+                            appointmentToCancel.techId,
+                            appointmentToCancel.date,
+                            appointmentToCancel.time
+                        );
+                        setAppointmentToCancel(null);
+                    }
+                }}
+                isLoading={isLoading}
+            />
+
+            <ConfirmationModal
+                isOpen={!!reviewToDelete}
+                title="Excluir Avaliação"
+                message="Tem certeza que deseja excluir sua avaliação permanentemente?"
+                confirmLabel="Excluir"
+                variant="danger"
+                onCancel={() => setReviewToDelete(null)}
+                onConfirm={confirmDeleteReview}
+                isLoading={isLoading}
+            />
+
+            <ConfirmationModal
+                isOpen={logoutConfirmation}
+                title="Sair do Sistema"
+                message="Deseja realmente sair da sua conta?"
+                confirmLabel="Sair"
+                variant="primary"
+                onCancel={() => setLogoutConfirmation(false)}
+                onConfirm={handleLogout}
+            />
+
         </div>
     );
 }
