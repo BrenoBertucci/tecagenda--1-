@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
@@ -52,3 +53,6 @@ root.render(
     </ErrorBoundary>
   </React.StrictMode>
 );
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();
