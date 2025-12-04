@@ -406,9 +406,10 @@ export default function App() {
                 currentUser.email,
                 { techId: selectedTech.id, date: bookingDate, time: bookingTime }
             );
-        } catch (error) {
+        } catch (error: any) {
             console.error('Booking error:', error);
-            setNotification({ msg: 'Erro ao confirmar agendamento.', type: 'error' });
+            const msg = error?.message || 'Erro ao confirmar agendamento.';
+            setNotification({ msg, type: 'error' });
         } finally {
             setIsLoading(false);
         }
@@ -459,9 +460,10 @@ export default function App() {
                 currentUser?.email,
                 { appointmentId: aptId, techId, date, time }
             );
-        } catch (error) {
+        } catch (error: any) {
             console.error('Cancel error:', error);
-            setNotification({ msg: 'Erro ao cancelar agendamento.', type: 'error' });
+            const msg = error?.message || 'Erro ao cancelar agendamento.';
+            setNotification({ msg, type: 'error' });
         } finally {
             setIsLoading(false);
         }

@@ -11,7 +11,7 @@ export const SupabaseService = {
             options: {
                 data: {
                     name: userData.name,
-                    role: userData.role,
+                    // role: userData.role, // REMOVED: Security risk - Role should be assigned by backend/trigger
                     avatar_url: userData.avatarUrl
                 }
             }

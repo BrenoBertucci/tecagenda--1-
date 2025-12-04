@@ -28,16 +28,20 @@ export class LogService {
         if (this.isInitialized) return;
 
         try {
-            // Try to load existing key from sessionStorage
-            const storedKey = sessionStorage.getItem('log_encryption_key');
-            if (storedKey) {
-                this.encryptionKey = await CryptoService.importKey(JSON.parse(storedKey));
-            } else {
-                // Generate new key for this session
-                this.encryptionKey = await CryptoService.generateKey();
-                const jwk = await CryptoService.exportKey(this.encryptionKey);
-                sessionStorage.setItem('log_encryption_key', JSON.stringify(jwk));
-            }
+            // Security Fix: Do not store key in sessionStorage.
+            // Generate new key for this session (in-memory only).
+            // This means logs cannot be decrypted after page reload, which is safer than exposing the key.
+            this.encryptionKey = await CryptoService.generateKey();
+
+            // const storedKey = sessionStorage.getItem('log_encryption_key');
+            // if (storedKey) {
+            //     this.encryptionKey = await CryptoService.importKey(JSON.parse(storedKey));
+            // } else {
+            //     // Generate new key for this session
+            //     this.encryptionKey = await CryptoService.generateKey();
+            //     const jwk = await CryptoService.exportKey(this.encryptionKey);
+            //     sessionStorage.setItem('log_encryption_key', JSON.stringify(jwk));
+            // }
 
             this.isInitialized = true;
             console.log('LogService initialized with encryption');

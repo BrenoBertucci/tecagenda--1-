@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
-import { Shield, Lock, AlertCircle, ArrowLeft } from 'lucide-react';
+import { SupabaseService } from '../services/SupabaseService';
+import { Shield, Lock, AlertCircle, ArrowLeft, User as UserIcon } from 'lucide-react';
 
 interface AdminLoginViewProps {
     onLoginSuccess: (user: User) => void;
@@ -8,30 +9,32 @@ interface AdminLoginViewProps {
 }
 
 export const AdminLoginView = ({ onLoginSuccess, onBack }: AdminLoginViewProps) => {
-    const [code, setCode] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isChecking, setIsChecking] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsChecking(true);
+        setError('');
 
-        // Simulate secure check delay
-        setTimeout(() => {
-            if (code === '100731594') {
-                const adminUser: User = {
-                    id: 'admin-master',
-                    name: 'Administrador',
-                    email: 'admin@tecagenda.com',
-                    role: UserRole.ADMIN
-                };
-                onLoginSuccess(adminUser);
+        try {
+            // Use Supabase Auth instead of hardcoded string
+            const user = await SupabaseService.signIn(email, password);
+
+            if (user.role === UserRole.ADMIN) {
+                onLoginSuccess(user);
             } else {
-                setError('ACESSO NEGADO');
-                setIsChecking(false);
-                setCode('');
+                setError('ACESSO NEGADO: Usuário não é administrador.');
+                await SupabaseService.signOut();
             }
-        }, 800);
+        } catch (err: any) {
+            console.error('Admin login error:', err);
+            setError('Credenciais inválidas ou erro no servidor.');
+        } finally {
+            setIsChecking(false);
+        }
     };
 
     return (
@@ -50,20 +53,32 @@ export const AdminLoginView = ({ onLoginSuccess, onBack }: AdminLoginViewProps) 
 
                 <form onSubmit={handleSubmit} className="space-y-6 backdrop-blur-sm bg-slate-900/50 p-8 rounded-2xl border border-slate-800 shadow-2xl">
                     <div>
-                        <label className="block text-xs font-mono text-slate-500 mb-2 uppercase tracking-wider">Código de Segurança</label>
+                        <label className="block text-xs font-mono text-slate-500 mb-2 uppercase tracking-wider">Email Administrativo</label>
+                        <div className="relative group">
+                            <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-red-500 transition-colors" size={20} />
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-red-900/50 focus:border-red-500/50 outline-none transition-all text-white font-mono text-sm tracking-widest placeholder-slate-600"
+                                placeholder="admin@tecagenda.com"
+                                required
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-mono text-slate-500 mb-2 uppercase tracking-wider">Senha</label>
                         <div className="relative group">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-red-500 transition-colors" size={20} />
                             <input
                                 type="password"
-                                value={code}
-                                onChange={(e) => {
-                                    setCode(e.target.value);
-                                    setError('');
-                                }}
-                                className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-red-900/50 focus:border-red-500/50 outline-none transition-all text-white font-mono text-lg tracking-widest placeholder-slate-600 text-center"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-red-900/50 focus:border-red-500/50 outline-none transition-all text-white font-mono text-lg tracking-widest placeholder-slate-600"
                                 placeholder="•••••••••"
                                 required
-                                autoFocus
                             />
                         </div>
                     </div>
@@ -83,7 +98,7 @@ export const AdminLoginView = ({ onLoginSuccess, onBack }: AdminLoginViewProps) 
                             : 'bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)]'
                             }`}
                     >
-                        {isChecking ? 'Verificando...' : 'Desbloquear Sistema'}
+                        {isChecking ? 'Verificando...' : 'Acessar Painel'}
                     </button>
                 </form>
 

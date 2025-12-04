@@ -27,11 +27,11 @@ export const RegisterTechView = ({ onRegister, onBack }: RegisterTechViewProps) 
             name,
             email,
             password: pass,
-            role: UserRole.TECHNICIAN,
+            // role: UserRole.TECHNICIAN, // REMOVED: Security risk
             address,
             bio,
             specialties: ['Geral'],
-            rating: 5.0,
+            // rating: 5.0, // REMOVED: Security risk
             distance: '0.5 km',
             priceEstimate: 'Sob Consulta'
         });
