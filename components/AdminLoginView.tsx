@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { SupabaseService } from '../services/SupabaseService';
-import { Shield, Lock, AlertCircle, ArrowLeft, User as UserIcon } from 'lucide-react';
+import { Shield, Lock, AlertCircle, ArrowLeft, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 
 interface AdminLoginViewProps {
     onLoginSuccess: (user: User) => void;
@@ -11,6 +11,7 @@ interface AdminLoginViewProps {
 export const AdminLoginView = ({ onLoginSuccess, onBack }: AdminLoginViewProps) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isChecking, setIsChecking] = useState(false);
 
@@ -73,13 +74,21 @@ export const AdminLoginView = ({ onLoginSuccess, onBack }: AdminLoginViewProps) 
                         <div className="relative group">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-red-500 transition-colors" size={20} />
                             <input
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-12 pr-4 py-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-red-900/50 focus:border-red-500/50 outline-none transition-all text-white font-mono text-lg tracking-widest placeholder-slate-600"
+                                className="w-full pl-12 pr-12 py-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-red-900/50 focus:border-red-500/50 outline-none transition-all text-white font-mono text-lg tracking-widest placeholder-slate-600"
                                 placeholder="•••••••••"
                                 required
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-red-500 transition-colors"
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
                         </div>
                     </div>
 

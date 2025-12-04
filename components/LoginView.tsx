@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { Button } from './Button';
-import { Smartphone, Mail, Lock } from 'lucide-react';
+import { PasswordInput } from './PasswordInput';
+import { Smartphone, Mail } from 'lucide-react';
 
 interface LoginViewProps {
     onLogin: (email: string, pass: string) => Promise<void>;
@@ -60,20 +61,12 @@ export const LoginView = ({ onLogin, onNavigateRegister, onError, setCurrentUser
                             />
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
-                            <input
-                                type="password"
-                                required
-                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                                placeholder="••••••••"
-                                value={pass}
-                                onChange={e => setPass(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                    <PasswordInput
+                        value={pass}
+                        onChange={setPass}
+                        required
+                        showStrength={false}
+                    />
 
                     <Button type="submit" fullWidth size="lg" className="mt-2 shadow-md">Entrar</Button>
 

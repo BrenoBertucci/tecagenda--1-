@@ -34,7 +34,7 @@ BEGIN
     
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = '';
 
 -- Trigger to run before update on appointments
 DROP TRIGGER IF EXISTS enforce_cancellation_policy ON appointments;

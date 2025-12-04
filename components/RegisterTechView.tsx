@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
 import { Button } from './Button';
+import { PasswordInput, isPasswordStrong } from './PasswordInput';
 import { ArrowLeft } from 'lucide-react';
 
 interface RegisterTechViewProps {
@@ -20,6 +21,10 @@ export const RegisterTechView = ({ onRegister, onBack }: RegisterTechViewProps) 
         e.preventDefault();
         if (!consent) {
             alert('Você precisa aceitar os Termos de Uso e Política de Privacidade.');
+            return;
+        }
+        if (!isPasswordStrong(pass)) {
+            alert('Por favor, crie uma senha mais forte seguindo os requisitos indicados.');
             return;
         }
         onRegister({
@@ -53,10 +58,12 @@ export const RegisterTechView = ({ onRegister, onBack }: RegisterTechViewProps) 
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <input required type="email" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={email} onChange={e => setEmail(e.target.value)} />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
-                        <input required type="password" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={pass} onChange={e => setPass(e.target.value)} />
-                    </div>
+                    <PasswordInput
+                        value={pass}
+                        onChange={setPass}
+                        required
+                        showStrength={true}
+                    />
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Endereço (Bairro/Cidade)</label>
                         <input required type="text" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all" value={address} onChange={e => setAddress(e.target.value)} />
