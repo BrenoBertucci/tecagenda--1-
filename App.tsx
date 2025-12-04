@@ -76,7 +76,7 @@ const ClientHome = ({ usersDb, onSelectTech }: { usersDb: DbUser[], onSelectTech
                     placeholder="Buscar por especialidade..."
                     className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm outline-none transition-all"
                 />
-                <Search className="absolute left-3 top-3.5 text-slate-400" size={20} aria-hidden="true" tabIndex={-1} />
+                <Search className="absolute left-3 top-3.5 text-slate-500" size={20} aria-hidden="true" tabIndex={-1} />
             </div>
 
             <div className="space-y-4">
@@ -86,7 +86,7 @@ const ClientHome = ({ usersDb, onSelectTech }: { usersDb: DbUser[], onSelectTech
                             {tech.avatarUrl ? (
                                 <img src={tech.avatarUrl} alt={tech.name} className="w-16 h-16 rounded-full object-cover" />
                             ) : (
-                                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
                                     <UserIcon size={24} />
                                 </div>
                             )}
@@ -835,7 +835,7 @@ export default function App() {
                                 {selectedTech.avatarUrl ? (
                                     <img src={selectedTech.avatarUrl} alt={selectedTech.name} className="w-20 h-20 rounded-full border-2 border-white shadow-md object-cover" />
                                 ) : (
-                                    <div className="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 border-2 border-white shadow-md">
+                                    <div className="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 border-2 border-white shadow-md">
                                         <UserIcon size={32} />
                                     </div>
                                 )}
@@ -975,7 +975,7 @@ export default function App() {
                         {appointments.filter(a => a.clientId === currentUser.id).length === 0 ? (
                             <div className="text-center py-12">
                                 <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Calendar className="text-slate-400" size={32} />
+                                    <Calendar className="text-slate-500" size={32} />
                                 </div>
                                 <h3 className="text-lg font-medium text-slate-900">Nenhum agendamento</h3>
                                 <p className="text-slate-500 mt-1 mb-6">Você ainda não tem serviços agendados.</p>
@@ -1068,7 +1068,7 @@ export default function App() {
             )}
             {/* Special lightweight footer for auth pages if needed, or just omit */}
             {['LOGIN', 'REGISTER_SELECTION'].includes(currentView) && (
-                <div className="py-4 text-center text-xs text-slate-400">
+                <div className="py-4 text-center text-xs text-slate-600">
                     <button onClick={() => setCurrentView('TERMS')} className="hover:underline mr-4">Termos de Uso</button>
                     <button onClick={() => setCurrentView('PRIVACY')} className="hover:underline">Política de Privacidade</button>
                 </div>
@@ -1078,14 +1078,14 @@ export default function App() {
                 <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg">
                     <button
                         onClick={() => setCurrentView('CLIENT_HOME')}
-                        className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                         <Search size={24} />
                         <span className="text-xs font-medium mt-1">Buscar</span>
                     </button>
                     <button
                         onClick={() => setCurrentView('CLIENT_APPOINTMENTS')}
-                        className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                         <History size={24} />
                         <span className="text-xs font-medium mt-1">Agenda</span>
