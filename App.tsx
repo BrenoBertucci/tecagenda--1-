@@ -18,6 +18,7 @@ import {
     Calendar, MapPin, Star, Search, Filter, ChevronLeft,
     Clock, CheckCircle, History, Smartphone, LogOut, Menu, X, FileText, Settings
 } from 'lucide-react';
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { LoginView } from './components/LoginView';
 import { RegisterSelectionView } from './components/RegisterSelectionView';
 import { RegisterClientView } from './components/RegisterClientView';
@@ -696,6 +697,7 @@ export default function App() {
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans relative text-slate-900 pb-safe">
+            <SpeedInsights />
             {currentUser && (
                 <ActionRequiredBanner
                     appointments={appointments.filter(a =>
