@@ -76,7 +76,7 @@ const ClientHome = ({ usersDb, onSelectTech }: { usersDb: DbUser[], onSelectTech
                     placeholder="Buscar por especialidade..."
                     className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm outline-none transition-all"
                 />
-                <Search className="absolute left-3 top-3.5 text-slate-400" size={20} />
+                <Search className="absolute left-3 top-3.5 text-slate-400" size={20} aria-hidden="true" />
             </div>
 
             <div className="space-y-4">
@@ -139,7 +139,7 @@ const ClientBooking = ({ date, time, onConfirm, onBack }: ClientBookingProps) =>
     return (
         <div className="min-h-screen bg-white max-w-md mx-auto flex flex-col">
             <div className="sticky top-0 z-30 bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3">
-                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="Voltar">
                     <ChevronLeft size={24} />
                 </button>
                 <span className="font-semibold text-slate-900">Confirmar Agendamento</span>
@@ -218,10 +218,34 @@ export default function App() {
     const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
     const [logoutConfirmation, setLogoutConfirmation] = useState<boolean>(false);
 
-    // Initialize Data
+    // Session Loading State
+    const [isSessionLoading, setIsSessionLoading] = useState<boolean>(true);
+
+    // Initialize Data & Session
     useEffect(() => {
-        const fetchData = async () => {
+        const initApp = async () => {
             try {
+                // 1. Check Session
+                const user = await SupabaseService.getCurrentUser();
+
+                if (user) {
+                    setCurrentUser(user);
+                    logService.info('SESSION_RESTORED', user.id, user.email);
+
+                    // Restore last view if available
+                    const lastView = localStorage.getItem('lastView') as ViewState;
+                    if (lastView && lastView !== 'LOGIN' && !lastView.startsWith('REGISTER')) {
+                        setCurrentView(lastView);
+                    } else {
+                        setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_HOME' : user.role === UserRole.ADMIN ? 'ADMIN_DASHBOARD' : 'TECH_DASHBOARD');
+                    }
+                }
+
+                // 2. Fetch Data (only if we have a user or just generic data if needed, 
+                // but original code fetched everything. We keep it consistent but maybe optimize later)
+                // For now, let's fetch data regardless to ensure app is ready, or maybe only if user exists?
+                // The original code fetched everything on mount. Let's keep it but handle loading correctly.
+
                 setIsLoading(true);
                 const [users, apts, revs, schedules] = await Promise.all([
                     SupabaseService.getUsers(),
@@ -237,16 +261,24 @@ export default function App() {
 
                 logService.info('APP_INITIALIZED', undefined, undefined, { version: '1.0.0', source: 'Supabase' });
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error initializing app:', error);
                 setNotification({ msg: 'Erro ao carregar dados do servidor.', type: 'error' });
             } finally {
                 setIsLoading(false);
+                setIsSessionLoading(false); // Session check done
             }
         };
 
-        fetchData();
+        initApp();
         logService.initialize();
     }, []);
+
+    // Persist View
+    useEffect(() => {
+        if (currentView !== 'LOGIN' && !currentView.startsWith('REGISTER')) {
+            localStorage.setItem('lastView', currentView);
+        }
+    }, [currentView]);
 
     useEffect(() => {
         if (notification) {
@@ -312,6 +344,7 @@ export default function App() {
             await SupabaseService.signOut();
             setCurrentUser(null);
             setCurrentView('LOGIN');
+            localStorage.removeItem('lastView'); // Clear saved view
             logService.info('LOGOUT', currentUser?.id, currentUser?.email);
         } catch (error) {
             console.error('Logout error', error);
@@ -684,10 +717,11 @@ export default function App() {
                         onClick={() => setCurrentView('SETTINGS')}
                         className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
                         title="Configurações"
+                        aria-label="Configurações"
                     >
                         <Settings size={20} />
                     </button>
-                    <button onClick={() => setLogoutConfirmation(true)} className="text-slate-500 hover:text-red-600 transition-colors" title="Sair">
+                    <button onClick={() => setLogoutConfirmation(true)} className="text-slate-500 hover:text-red-600 transition-colors" title="Sair" aria-label="Sair">
                         <LogOut size={20} />
                     </button>
                 </div>
@@ -791,7 +825,7 @@ export default function App() {
                 {currentView === 'CLIENT_TECH_PROFILE' && selectedTech && (
                     <div className="pb-24 max-w-md mx-auto bg-white min-h-screen">
                         <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-3">
-                            <button onClick={() => setCurrentView('CLIENT_HOME')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                            <button onClick={() => setCurrentView('CLIENT_HOME')} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="Voltar">
                                 <ChevronLeft size={24} />
                             </button>
                             <span className="font-semibold text-slate-900">Perfil do Técnico</span>
@@ -1060,7 +1094,7 @@ export default function App() {
             )}
 
             {/* Global Loading Overlay */}
-            <LoadingOverlay isVisible={isLoading && (currentView === 'LOGIN' || currentView.startsWith('REGISTER'))} />
+            <LoadingOverlay isVisible={isSessionLoading || (isLoading && (currentView === 'LOGIN' || currentView.startsWith('REGISTER')))} />
 
             {/* Modals */}
             <ConfirmationModal
