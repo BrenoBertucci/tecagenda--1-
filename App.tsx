@@ -35,6 +35,7 @@ import { TechDashboard } from './components/TechDashboard';
 import { AboutView } from './components/AboutView';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { LoadingOverlay } from './components/LoadingOverlay';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // --- GLOBAL STATE TYPES ---
 
@@ -213,6 +214,10 @@ export default function App() {
     const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
     const [showReviewForm, setShowReviewForm] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    // Inner App Component to use Theme Context if needed, or just wrap everything
+    // For simplicity, we'll wrap the return JSX
+
 
     // Modal states
     const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
@@ -704,24 +709,24 @@ export default function App() {
     };
 
     const Header = () => (
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm">
+        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm transition-colors">
             <div className="flex items-center gap-2" onClick={() => currentUser?.role === UserRole.CLIENT && setCurrentView('CLIENT_HOME')}>
                 <div className="bg-primary-600 p-1.5 rounded-lg shadow-sm">
                     <Smartphone className="text-white" size={20} />
                 </div>
-                <h1 className="font-bold text-xl tracking-tight text-slate-900 cursor-pointer">TecAgenda</h1>
+                <h1 className="font-bold text-xl tracking-tight text-slate-900 dark:text-white cursor-pointer">TecAgenda</h1>
             </div>
             {currentUser && (
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setCurrentView('SETTINGS')}
-                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                        className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                         title="Configurações"
                         aria-label="Configurações"
                     >
                         <Settings size={20} />
                     </button>
-                    <button onClick={() => setLogoutConfirmation(true)} className="text-slate-500 hover:text-red-600 transition-colors" title="Sair" aria-label="Sair">
+                    <button onClick={() => setLogoutConfirmation(true)} className="text-slate-500 dark:text-slate-400 hover:text-red-600 transition-colors" title="Sair" aria-label="Sair">
                         <LogOut size={20} />
                     </button>
                 </div>
@@ -730,415 +735,417 @@ export default function App() {
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans relative text-slate-900 pb-safe">
-            <SpeedInsights />
-            {currentUser && (
-                <ActionRequiredBanner
-                    appointments={appointments.filter(a =>
-                        currentUser.role === UserRole.CLIENT ? a.clientId === currentUser.id : a.techId === currentUser.id
-                    )}
-                    currentUser={currentUser}
-                    onConfirm={handleCompleteAppointment}
-                    onReportIssue={handleReportIssue}
-                    onReportNoShow={handleReportNoShow}
-                />
-            )}
-
-            {/* Notification Toast */}
-            {notification && (
-                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-                    }`}>
-                    {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                    <span className="font-medium">{notification.msg}</span>
-                </div>
-            )}
-
-            {currentView !== 'LOGIN' && !currentView.startsWith('REGISTER') && <Header />}
-
-            <main className="animate-fade-in">
-                {currentView === 'LOGIN' && (
-                    <LoginView
-                        onLogin={handleLogin}
-                        onNavigateRegister={() => setCurrentView('REGISTER_SELECTION')}
-                        onError={(msg) => setNotification({ msg, type: 'error' })}
-                        setCurrentUser={setCurrentUser}
-                        setCurrentView={setCurrentView}
-                        setNotification={setNotification}
-                    />
-                )}
-                {currentView === 'ADMIN_LOGIN' && (
-                    <AdminLoginView
-                        onLoginSuccess={(user) => {
-                            setCurrentUser(user);
-                            setCurrentView('ADMIN_DASHBOARD');
-                        }}
-                        onBack={() => setCurrentView('LOGIN')}
-                    />
-                )}
-                {currentView === 'REGISTER_SELECTION' && (
-                    <RegisterSelectionView onNavigate={setCurrentView} />
-                )}
-                {currentView === 'REGISTER_CLIENT' && (
-                    <RegisterClientView
-                        onRegister={handleRegister}
-                        onBack={() => setCurrentView('REGISTER_SELECTION')}
-                    />
-                )}
-                {currentView === 'REGISTER_TECH' && (
-                    <RegisterTechView
-                        onRegister={handleRegister}
-                        onBack={() => setCurrentView('REGISTER_SELECTION')}
-                    />
-                )}
-                {currentView === 'ABOUT' && (
-                    <AboutView onBack={() => setCurrentView('LOGIN')} />
-                )}
-
-
-                {currentView === 'SETTINGS' && currentUser && (
-                    <SettingsView
+        <ThemeProvider>
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans relative text-slate-900 dark:text-slate-100 pb-safe transition-colors">
+                <SpeedInsights />
+                {currentUser && (
+                    <ActionRequiredBanner
+                        appointments={appointments.filter(a =>
+                            currentUser.role === UserRole.CLIENT ? a.clientId === currentUser.id : a.techId === currentUser.id
+                        )}
                         currentUser={currentUser}
-                        usersDb={usersDb}
-                        onUpdate={handleUpdateProfile}
-                        onDeleteRequest={() => {
-                            logService.critical('DATA_DELETION_REQUEST', currentUser.id, currentUser.email, { reason: 'LGPD user request' });
-                            alert('Sua solicitação foi recebida. Seus dados serão excluídos em até 15 dias conforme a LGPD.');
-                            handleLogout();
-                        }}
-                        onBack={() => setCurrentView(currentUser.role === UserRole.CLIENT ? 'CLIENT_HOME' : 'TECH_DASHBOARD')}
+                        onConfirm={handleCompleteAppointment}
+                        onReportIssue={handleReportIssue}
+                        onReportNoShow={handleReportNoShow}
                     />
                 )}
 
-                {currentView === 'CLIENT_HOME' && (
-                    <ClientHome
-                        usersDb={usersDb}
-                        onSelectTech={(id) => {
-                            const tech = usersDb.find(u => u.id === id) as Technician;
-                            if (tech) {
-                                setSelectedTech(tech);
-                                setCurrentView('CLIENT_TECH_PROFILE');
-                            }
-                        }}
-                    />
+                {/* Notification Toast */}
+                {notification && (
+                    <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                        }`}>
+                        {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                        <span className="font-medium">{notification.msg}</span>
+                    </div>
                 )}
 
-                {currentView === 'CLIENT_TECH_PROFILE' && selectedTech && (
-                    <div className="pb-24 max-w-md mx-auto bg-white min-h-screen">
-                        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-3">
-                            <button onClick={() => setCurrentView('CLIENT_HOME')} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="Voltar">
-                                <ChevronLeft size={24} />
-                            </button>
-                            <span className="font-semibold text-slate-900">Perfil do Técnico</span>
-                        </div>
-                        <div className="p-6 pb-0">
-                            <div className="flex items-center gap-4 mb-6">
-                                {selectedTech.avatarUrl ? (
-                                    <img src={selectedTech.avatarUrl} alt={selectedTech.name} className="w-20 h-20 rounded-full border-2 border-white shadow-md object-cover" />
-                                ) : (
-                                    <div className="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 border-2 border-white shadow-md">
-                                        <UserIcon size={32} />
+                {currentView !== 'LOGIN' && !currentView.startsWith('REGISTER') && <Header />}
+
+                <main className="animate-fade-in">
+                    {currentView === 'LOGIN' && (
+                        <LoginView
+                            onLogin={handleLogin}
+                            onNavigateRegister={() => setCurrentView('REGISTER_SELECTION')}
+                            onError={(msg) => setNotification({ msg, type: 'error' })}
+                            setCurrentUser={setCurrentUser}
+                            setCurrentView={setCurrentView}
+                            setNotification={setNotification}
+                        />
+                    )}
+                    {currentView === 'ADMIN_LOGIN' && (
+                        <AdminLoginView
+                            onLoginSuccess={(user) => {
+                                setCurrentUser(user);
+                                setCurrentView('ADMIN_DASHBOARD');
+                            }}
+                            onBack={() => setCurrentView('LOGIN')}
+                        />
+                    )}
+                    {currentView === 'REGISTER_SELECTION' && (
+                        <RegisterSelectionView onNavigate={setCurrentView} />
+                    )}
+                    {currentView === 'REGISTER_CLIENT' && (
+                        <RegisterClientView
+                            onRegister={handleRegister}
+                            onBack={() => setCurrentView('REGISTER_SELECTION')}
+                        />
+                    )}
+                    {currentView === 'REGISTER_TECH' && (
+                        <RegisterTechView
+                            onRegister={handleRegister}
+                            onBack={() => setCurrentView('REGISTER_SELECTION')}
+                        />
+                    )}
+                    {currentView === 'ABOUT' && (
+                        <AboutView onBack={() => setCurrentView('LOGIN')} />
+                    )}
+
+
+                    {currentView === 'SETTINGS' && currentUser && (
+                        <SettingsView
+                            currentUser={currentUser}
+                            usersDb={usersDb}
+                            onUpdate={handleUpdateProfile}
+                            onDeleteRequest={() => {
+                                logService.critical('DATA_DELETION_REQUEST', currentUser.id, currentUser.email, { reason: 'LGPD user request' });
+                                alert('Sua solicitação foi recebida. Seus dados serão excluídos em até 15 dias conforme a LGPD.');
+                                handleLogout();
+                            }}
+                            onBack={() => setCurrentView(currentUser.role === UserRole.CLIENT ? 'CLIENT_HOME' : 'TECH_DASHBOARD')}
+                        />
+                    )}
+
+                    {currentView === 'CLIENT_HOME' && (
+                        <ClientHome
+                            usersDb={usersDb}
+                            onSelectTech={(id) => {
+                                const tech = usersDb.find(u => u.id === id) as Technician;
+                                if (tech) {
+                                    setSelectedTech(tech);
+                                    setCurrentView('CLIENT_TECH_PROFILE');
+                                }
+                            }}
+                        />
+                    )}
+
+                    {currentView === 'CLIENT_TECH_PROFILE' && selectedTech && (
+                        <div className="pb-24 max-w-md mx-auto bg-white min-h-screen">
+                            <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-3">
+                                <button onClick={() => setCurrentView('CLIENT_HOME')} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="Voltar">
+                                    <ChevronLeft size={24} />
+                                </button>
+                                <span className="font-semibold text-slate-900">Perfil do Técnico</span>
+                            </div>
+                            <div className="p-6 pb-0">
+                                <div className="flex items-center gap-4 mb-6">
+                                    {selectedTech.avatarUrl ? (
+                                        <img src={selectedTech.avatarUrl} alt={selectedTech.name} className="w-20 h-20 rounded-full border-2 border-white shadow-md object-cover" />
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 border-2 border-white shadow-md">
+                                            <UserIcon size={32} />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900">{selectedTech.name}</h2>
+                                        <p className="text-slate-500 text-sm">{selectedTech.address}</p>
                                     </div>
-                                )}
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-900">{selectedTech.name}</h2>
-                                    <p className="text-slate-500 text-sm">{selectedTech.address}</p>
                                 </div>
-                            </div>
-                            <div className="mb-6">
-                                <h3 className="font-semibold text-slate-900 mb-2">Sobre</h3>
-                                <p className="text-slate-600 text-sm leading-relaxed">{selectedTech.bio || 'Sem descrição disponível.'}</p>
-                            </div>
-                            <div className="mb-6">
-                                <h3 className="font-semibold text-slate-900 mb-3">Horários Disponíveis</h3>
-                                <div className="space-y-4">
-                                    {(techSchedules[selectedTech.id] || []).map((day) => (
-                                        <div key={day.date} className="border border-slate-100 rounded-xl p-4 bg-slate-50">
-                                            <div className="flex items-center gap-2 mb-3 text-slate-700 font-medium">
-                                                <Calendar size={16} />
-                                                {new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}
-                                            </div>
-                                            <div className="grid grid-cols-4 gap-2">
-                                                {day.slots.map((slot) => {
-                                                    const isDisabled = slot.isBlocked || slot.isBooked;
-                                                    return (
-                                                        <button
-                                                            key={slot.id}
-                                                            disabled={isDisabled}
-                                                            onClick={() => {
-                                                                setBookingDate(day.date);
-                                                                setBookingTime(slot.time);
-                                                                setCurrentView('CLIENT_BOOKING');
-                                                            }}
-                                                            className={`
+                                <div className="mb-6">
+                                    <h3 className="font-semibold text-slate-900 mb-2">Sobre</h3>
+                                    <p className="text-slate-600 text-sm leading-relaxed">{selectedTech.bio || 'Sem descrição disponível.'}</p>
+                                </div>
+                                <div className="mb-6">
+                                    <h3 className="font-semibold text-slate-900 mb-3">Horários Disponíveis</h3>
+                                    <div className="space-y-4">
+                                        {(techSchedules[selectedTech.id] || []).map((day) => (
+                                            <div key={day.date} className="border border-slate-100 rounded-xl p-4 bg-slate-50">
+                                                <div className="flex items-center gap-2 mb-3 text-slate-700 font-medium">
+                                                    <Calendar size={16} />
+                                                    {new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}
+                                                </div>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {day.slots.map((slot) => {
+                                                        const isDisabled = slot.isBlocked || slot.isBooked;
+                                                        return (
+                                                            <button
+                                                                key={slot.id}
+                                                                disabled={isDisabled}
+                                                                onClick={() => {
+                                                                    setBookingDate(day.date);
+                                                                    setBookingTime(slot.time);
+                                                                    setCurrentView('CLIENT_BOOKING');
+                                                                }}
+                                                                className={`
                                                                 py-2 rounded-lg text-sm font-medium transition-all
                                                                 ${isDisabled
-                                                                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed decoration-slate-400'
-                                                                    : 'bg-white border border-primary-200 text-primary-700 shadow-sm hover:bg-primary-600 hover:text-white hover:border-primary-600'
-                                                                }
+                                                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed decoration-slate-400'
+                                                                        : 'bg-white border border-primary-200 text-primary-700 shadow-sm hover:bg-primary-600 hover:text-white hover:border-primary-600'
+                                                                    }
                                                             `}
-                                                        >
-                                                            {slot.time}
-                                                        </button>
-                                                    )
-                                                })}
+                                                            >
+                                                                {slot.time}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Reviews Section */}
-                            <div className="mb-6">
-                                <h3 className="font-semibold text-slate-900 mb-3">Avaliações</h3>
-                                <ReviewList
-                                    reviews={reviews.filter(r => r.techId === selectedTech.id)}
-                                    currentUserRole={currentUser?.role}
-                                    currentUserId={currentUser?.id}
-                                    onEdit={handleEditReview}
-                                    onDelete={handleDeleteReview}
-                                />
-                            </div>
-
-                            {/* Review Form Section */}
-                            {currentUser && (() => {
-                                const hasCompletedAppointment = appointments.some(
-                                    apt => apt.clientId === currentUser.id &&
-                                        apt.techId === selectedTech.id &&
-                                        apt.status === AppointmentStatus.COMPLETED
-                                );
-                                const alreadyReviewed = reviews.some(
-                                    r => r.clientId === currentUser.id && r.techId === selectedTech.id
-                                );
-
-                                if (!hasCompletedAppointment) {
-                                    return (
-                                        <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-200">
-                                            <p className="text-sm text-slate-600">
-                                                Você poderá avaliar este técnico após ser atendido.
-                                            </p>
-                                        </div>
-                                    );
-                                }
-
-                                if (alreadyReviewed) {
-                                    return (
-                                        <div className="bg-green-50 p-4 rounded-xl text-center border border-green-200">
-                                            <p className="text-sm text-green-700 font-medium">
-                                                ✓ Você já avaliou este técnico.
-                                            </p>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <Button fullWidth onClick={() => {
-                                        setEditingReview(null);
-                                        setShowReviewForm(!showReviewForm);
-                                    }}>
-                                        {showReviewForm ? 'Cancelar Avaliação' : 'Avaliar Atendimento'}
-                                    </Button>
-                                );
-                            })()}
-
-                            {showReviewForm && (
-                                <div className="mt-4">
-                                    <ReviewForm
-                                        onSubmit={handleSubmitReview}
-                                        onCancel={() => {
-                                            setShowReviewForm(false);
-                                            setEditingReview(null);
-                                        }}
-                                        initialData={editingReview ? {
-                                            rating: editingReview.rating,
-                                            comment: editingReview.comment,
-                                            tags: editingReview.tags
-                                        } : undefined}
+                                {/* Reviews Section */}
+                                <div className="mb-6">
+                                    <h3 className="font-semibold text-slate-900 mb-3">Avaliações</h3>
+                                    <ReviewList
+                                        reviews={reviews.filter(r => r.techId === selectedTech.id)}
+                                        currentUserRole={currentUser?.role}
+                                        currentUserId={currentUser?.id}
+                                        onEdit={handleEditReview}
+                                        onDelete={handleDeleteReview}
                                     />
+                                </div>
+
+                                {/* Review Form Section */}
+                                {currentUser && (() => {
+                                    const hasCompletedAppointment = appointments.some(
+                                        apt => apt.clientId === currentUser.id &&
+                                            apt.techId === selectedTech.id &&
+                                            apt.status === AppointmentStatus.COMPLETED
+                                    );
+                                    const alreadyReviewed = reviews.some(
+                                        r => r.clientId === currentUser.id && r.techId === selectedTech.id
+                                    );
+
+                                    if (!hasCompletedAppointment) {
+                                        return (
+                                            <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-200">
+                                                <p className="text-sm text-slate-600">
+                                                    Você poderá avaliar este técnico após ser atendido.
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+
+                                    if (alreadyReviewed) {
+                                        return (
+                                            <div className="bg-green-50 p-4 rounded-xl text-center border border-green-200">
+                                                <p className="text-sm text-green-700 font-medium">
+                                                    ✓ Você já avaliou este técnico.
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <Button fullWidth onClick={() => {
+                                            setEditingReview(null);
+                                            setShowReviewForm(!showReviewForm);
+                                        }}>
+                                            {showReviewForm ? 'Cancelar Avaliação' : 'Avaliar Atendimento'}
+                                        </Button>
+                                    );
+                                })()}
+
+                                {showReviewForm && (
+                                    <div className="mt-4">
+                                        <ReviewForm
+                                            onSubmit={handleSubmitReview}
+                                            onCancel={() => {
+                                                setShowReviewForm(false);
+                                                setEditingReview(null);
+                                            }}
+                                            initialData={editingReview ? {
+                                                rating: editingReview.rating,
+                                                comment: editingReview.comment,
+                                                tags: editingReview.tags
+                                            } : undefined}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {currentView === 'CLIENT_BOOKING' && (
+                        <ClientBooking
+                            date={bookingDate}
+                            time={bookingTime}
+                            onConfirm={handleConfirmBooking}
+                            onBack={() => setCurrentView('CLIENT_TECH_PROFILE')}
+                        />
+                    )}
+
+                    {currentView === 'CLIENT_APPOINTMENTS' && currentUser && (
+                        <div className="pb-24 px-4 pt-6 max-w-md mx-auto min-h-screen relative">
+                            <h2 className="text-2xl font-bold text-slate-900 mb-6">Meus Agendamentos</h2>
+                            {appointments.filter(a => a.clientId === currentUser.id).length === 0 ? (
+                                <div className="text-center py-12">
+                                    <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Calendar className="text-slate-500" size={32} />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-slate-900">Nenhum agendamento</h3>
+                                    <p className="text-slate-500 mt-1 mb-6">Você ainda não tem serviços agendados.</p>
+                                    <Button onClick={() => setCurrentView('CLIENT_HOME')}>Buscar Técnico</Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {appointments.filter(a => a.clientId === currentUser.id).map(apt => {
+                                        const canCancel = checkCanCancel(apt.date, apt.time);
+                                        return (
+                                            <div key={apt.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-900">{apt.techName}</h4>
+                                                        <p className="text-xs text-slate-500">Técnico</p>
+                                                    </div>
+                                                    <div className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider
+                                                    ${apt.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                                                            apt.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}
+                                                `}>
+                                                        {apt.status === 'CONFIRMED' ? 'Confirmado' :
+                                                            apt.status === 'CANCELLED' ? 'Cancelado' : apt.status}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2 text-sm text-slate-600 mb-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={16} className="text-primary-500" />
+                                                        <span>{new Date(apt.date).toLocaleDateString('pt-BR')} às {apt.time}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Smartphone size={16} className="text-primary-500" />
+                                                        <span>{apt.deviceModel}</span>
+                                                    </div>
+                                                    <div className="bg-slate-50 p-2 rounded text-xs italic border border-slate-100">
+                                                        "{apt.issueDescription}"
+                                                    </div>
+                                                </div>
+                                                {apt.status === 'CONFIRMED' && (
+                                                    <Button
+                                                        variant="secondary"
+                                                        fullWidth
+                                                        size="sm"
+                                                        className={`${canCancel ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-slate-400 border-slate-200 bg-slate-50 cursor-not-allowed'}`}
+                                                        onClick={() => { if (canCancel) setAppointmentToCancel(apt); }}
+                                                        disabled={!canCancel}
+                                                    >
+                                                        {canCancel ? 'Cancelar Agendamento' : 'Cancelamento indisponível (< 24h)'}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {currentView === 'CLIENT_BOOKING' && (
-                    <ClientBooking
-                        date={bookingDate}
-                        time={bookingTime}
-                        onConfirm={handleConfirmBooking}
-                        onBack={() => setCurrentView('CLIENT_TECH_PROFILE')}
-                    />
-                )}
+                    {currentView === 'TECH_DASHBOARD' && currentUser && (
+                        <TechDashboard
+                            currentUser={currentUser}
+                            techSchedules={techSchedules}
+                            setTechSchedules={setTechSchedules}
+                            appointments={appointments}
+                            setAppointmentToCancel={setAppointmentToCancel}
+                            checkCanCancel={checkCanCancel}
+                            reviews={reviews}
+                            onReplyReview={handleReplyReview}
+                            onCompleteAppointment={handleCompleteAppointment}
+                        />
+                    )}
+                </main>
 
-                {currentView === 'CLIENT_APPOINTMENTS' && currentUser && (
-                    <div className="pb-24 px-4 pt-6 max-w-md mx-auto min-h-screen relative">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-6">Meus Agendamentos</h2>
-                        {appointments.filter(a => a.clientId === currentUser.id).length === 0 ? (
-                            <div className="text-center py-12">
-                                <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Calendar className="text-slate-500" size={32} />
-                                </div>
-                                <h3 className="text-lg font-medium text-slate-900">Nenhum agendamento</h3>
-                                <p className="text-slate-500 mt-1 mb-6">Você ainda não tem serviços agendados.</p>
-                                <Button onClick={() => setCurrentView('CLIENT_HOME')}>Buscar Técnico</Button>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {appointments.filter(a => a.clientId === currentUser.id).map(apt => {
-                                    const canCancel = checkCanCancel(apt.date, apt.time);
-                                    return (
-                                        <div key={apt.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <h4 className="font-bold text-slate-900">{apt.techName}</h4>
-                                                    <p className="text-xs text-slate-500">Técnico</p>
-                                                </div>
-                                                <div className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider
-                                                    ${apt.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
-                                                        apt.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}
-                                                `}>
-                                                    {apt.status === 'CONFIRMED' ? 'Confirmado' :
-                                                        apt.status === 'CANCELLED' ? 'Cancelado' : apt.status}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2 text-sm text-slate-600 mb-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar size={16} className="text-primary-500" />
-                                                    <span>{new Date(apt.date).toLocaleDateString('pt-BR')} às {apt.time}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Smartphone size={16} className="text-primary-500" />
-                                                    <span>{apt.deviceModel}</span>
-                                                </div>
-                                                <div className="bg-slate-50 p-2 rounded text-xs italic border border-slate-100">
-                                                    "{apt.issueDescription}"
-                                                </div>
-                                            </div>
-                                            {apt.status === 'CONFIRMED' && (
-                                                <Button
-                                                    variant="secondary"
-                                                    fullWidth
-                                                    size="sm"
-                                                    className={`${canCancel ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-slate-400 border-slate-200 bg-slate-50 cursor-not-allowed'}`}
-                                                    onClick={() => { if (canCancel) setAppointmentToCancel(apt); }}
-                                                    disabled={!canCancel}
-                                                >
-                                                    {canCancel ? 'Cancelar Agendamento' : 'Cancelamento indisponível (< 24h)'}
-                                                </Button>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {currentView === 'TECH_DASHBOARD' && currentUser && (
-                    <TechDashboard
-                        currentUser={currentUser}
-                        techSchedules={techSchedules}
-                        setTechSchedules={setTechSchedules}
+                {currentView === 'ADMIN_DASHBOARD' && (
+                    <AdminDashboard
+                        users={usersDb}
                         appointments={appointments}
-                        setAppointmentToCancel={setAppointmentToCancel}
-                        checkCanCancel={checkCanCancel}
                         reviews={reviews}
-                        onReplyReview={handleReplyReview}
-                        onCompleteAppointment={handleCompleteAppointment}
+                        logService={logService}
+                        onLogout={handleLogout}
+                        onResolveDispute={handleResolveDispute}
                     />
                 )}
-            </main>
 
-            {currentView === 'ADMIN_DASHBOARD' && (
-                <AdminDashboard
-                    users={usersDb}
-                    appointments={appointments}
-                    reviews={reviews}
-                    logService={logService}
-                    onLogout={handleLogout}
-                    onResolveDispute={handleResolveDispute}
+                {currentView === 'TERMS' && <TermsView onBack={() => setCurrentView(currentUser ? 'SETTINGS' : 'LOGIN')} />}
+                {currentView === 'PRIVACY' && <PrivacyView onBack={() => setCurrentView(currentUser ? 'SETTINGS' : 'LOGIN')} />}
+
+                {/* Global Footer (visible on most pages) */}
+                {!['LOGIN', 'ADMIN_LOGIN', 'REGISTER_SELECTION', 'REGISTER_CLIENT', 'REGISTER_TECH'].includes(currentView) && (
+                    <Footer onNavigate={setCurrentView} />
+                )}
+                {/* Special lightweight footer for auth pages if needed, or just omit */}
+                {['LOGIN', 'REGISTER_SELECTION'].includes(currentView) && (
+                    <div className="py-4 text-center text-xs text-slate-600">
+                        <button onClick={() => setCurrentView('TERMS')} className="hover:underline mr-4">Termos de Uso</button>
+                        <button onClick={() => setCurrentView('PRIVACY')} className="hover:underline">Política de Privacidade</button>
+                    </div>
+                )}
+
+                {currentUser?.role === UserRole.CLIENT && currentView !== 'SETTINGS' && (
+                    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg transition-colors">
+                        <button
+                            onClick={() => setCurrentView('CLIENT_HOME')}
+                            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
+                        >
+                            <Search size={24} />
+                            <span className="text-xs font-medium mt-1">Buscar</span>
+                        </button>
+                        <button
+                            onClick={() => setCurrentView('CLIENT_APPOINTMENTS')}
+                            className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
+                        >
+                            <History size={24} />
+                            <span className="text-xs font-medium mt-1">Agenda</span>
+                        </button>
+                    </nav>
+                )}
+
+                {/* Global Loading Overlay */}
+                <LoadingOverlay isVisible={isSessionLoading || (isLoading && (currentView === 'LOGIN' || currentView.startsWith('REGISTER')))} />
+
+                {/* Modals */}
+                <ConfirmationModal
+                    isOpen={!!appointmentToCancel}
+                    title="Cancelar Agendamento"
+                    message="Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita."
+                    confirmLabel="Sim, Cancelar"
+                    variant="danger"
+                    onCancel={() => setAppointmentToCancel(null)}
+                    onConfirm={() => {
+                        if (appointmentToCancel) {
+                            handleCancelAppointment(
+                                appointmentToCancel.id,
+                                appointmentToCancel.techId,
+                                appointmentToCancel.date,
+                                appointmentToCancel.time
+                            );
+                            setAppointmentToCancel(null);
+                        }
+                    }}
+                    isLoading={isLoading}
                 />
-            )}
 
-            {currentView === 'TERMS' && <TermsView onBack={() => setCurrentView(currentUser ? 'SETTINGS' : 'LOGIN')} />}
-            {currentView === 'PRIVACY' && <PrivacyView onBack={() => setCurrentView(currentUser ? 'SETTINGS' : 'LOGIN')} />}
+                <ConfirmationModal
+                    isOpen={!!reviewToDelete}
+                    title="Excluir Avaliação"
+                    message="Tem certeza que deseja excluir sua avaliação permanentemente?"
+                    confirmLabel="Excluir"
+                    variant="danger"
+                    onCancel={() => setReviewToDelete(null)}
+                    onConfirm={confirmDeleteReview}
+                    isLoading={isLoading}
+                />
 
-            {/* Global Footer (visible on most pages) */}
-            {!['LOGIN', 'ADMIN_LOGIN', 'REGISTER_SELECTION', 'REGISTER_CLIENT', 'REGISTER_TECH'].includes(currentView) && (
-                <Footer onNavigate={setCurrentView} />
-            )}
-            {/* Special lightweight footer for auth pages if needed, or just omit */}
-            {['LOGIN', 'REGISTER_SELECTION'].includes(currentView) && (
-                <div className="py-4 text-center text-xs text-slate-600">
-                    <button onClick={() => setCurrentView('TERMS')} className="hover:underline mr-4">Termos de Uso</button>
-                    <button onClick={() => setCurrentView('PRIVACY')} className="hover:underline">Política de Privacidade</button>
-                </div>
-            )}
+                <ConfirmationModal
+                    isOpen={logoutConfirmation}
+                    title="Sair do Sistema"
+                    message="Deseja realmente sair da sua conta?"
+                    confirmLabel="Sair"
+                    variant="primary"
+                    onCancel={() => setLogoutConfirmation(false)}
+                    onConfirm={handleLogout}
+                />
 
-            {currentUser?.role === UserRole.CLIENT && currentView !== 'SETTINGS' && (
-                <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg">
-                    <button
-                        onClick={() => setCurrentView('CLIENT_HOME')}
-                        className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
-                    >
-                        <Search size={24} />
-                        <span className="text-xs font-medium mt-1">Buscar</span>
-                    </button>
-                    <button
-                        onClick={() => setCurrentView('CLIENT_APPOINTMENTS')}
-                        className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
-                    >
-                        <History size={24} />
-                        <span className="text-xs font-medium mt-1">Agenda</span>
-                    </button>
-                </nav>
-            )}
-
-            {/* Global Loading Overlay */}
-            <LoadingOverlay isVisible={isSessionLoading || (isLoading && (currentView === 'LOGIN' || currentView.startsWith('REGISTER')))} />
-
-            {/* Modals */}
-            <ConfirmationModal
-                isOpen={!!appointmentToCancel}
-                title="Cancelar Agendamento"
-                message="Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita."
-                confirmLabel="Sim, Cancelar"
-                variant="danger"
-                onCancel={() => setAppointmentToCancel(null)}
-                onConfirm={() => {
-                    if (appointmentToCancel) {
-                        handleCancelAppointment(
-                            appointmentToCancel.id,
-                            appointmentToCancel.techId,
-                            appointmentToCancel.date,
-                            appointmentToCancel.time
-                        );
-                        setAppointmentToCancel(null);
-                    }
-                }}
-                isLoading={isLoading}
-            />
-
-            <ConfirmationModal
-                isOpen={!!reviewToDelete}
-                title="Excluir Avaliação"
-                message="Tem certeza que deseja excluir sua avaliação permanentemente?"
-                confirmLabel="Excluir"
-                variant="danger"
-                onCancel={() => setReviewToDelete(null)}
-                onConfirm={confirmDeleteReview}
-                isLoading={isLoading}
-            />
-
-            <ConfirmationModal
-                isOpen={logoutConfirmation}
-                title="Sair do Sistema"
-                message="Deseja realmente sair da sua conta?"
-                confirmLabel="Sair"
-                variant="primary"
-                onCancel={() => setLogoutConfirmation(false)}
-                onConfirm={handleLogout}
-            />
-
-        </div>
+            </div>
+        </ThemeProvider>
     );
 }
