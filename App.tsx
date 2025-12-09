@@ -836,37 +836,37 @@ export default function App() {
                     )}
 
                     {currentView === 'CLIENT_TECH_PROFILE' && selectedTech && (
-                        <div className="pb-24 max-w-md mx-auto bg-white min-h-screen">
-                            <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 py-3 flex items-center gap-3">
-                                <button onClick={() => setCurrentView('CLIENT_HOME')} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="Voltar">
+                        <div className="pb-24 max-w-md mx-auto bg-card min-h-screen">
+                            <div className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-subtle px-4 py-3 flex items-center gap-3">
+                                <button onClick={() => setCurrentView('CLIENT_HOME')} className="p-2 hover:bg-subtle rounded-full transition-colors" aria-label="Voltar">
                                     <ChevronLeft size={24} />
                                 </button>
-                                <span className="font-semibold text-slate-900">Perfil do Técnico</span>
+                                <span className="font-semibold text-main">Perfil do Técnico</span>
                             </div>
                             <div className="p-6 pb-0">
                                 <div className="flex items-center gap-4 mb-6">
                                     {selectedTech.avatarUrl ? (
                                         <img src={selectedTech.avatarUrl} alt={selectedTech.name} className="w-20 h-20 rounded-full border-2 border-white shadow-md object-cover" />
                                     ) : (
-                                        <div className="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 border-2 border-white shadow-md">
+                                        <div className="w-20 h-20 rounded-full bg-hover flex items-center justify-center text-muted border-2 border-white shadow-md">
                                             <UserIcon size={32} />
                                         </div>
                                     )}
                                     <div>
-                                        <h2 className="text-xl font-bold text-slate-900">{selectedTech.name}</h2>
-                                        <p className="text-slate-500 text-sm">{selectedTech.address}</p>
+                                        <h2 className="text-xl font-bold text-main">{selectedTech.name}</h2>
+                                        <p className="text-muted text-sm">{selectedTech.address}</p>
                                     </div>
                                 </div>
                                 <div className="mb-6">
-                                    <h3 className="font-semibold text-slate-900 mb-2">Sobre</h3>
-                                    <p className="text-slate-600 text-sm leading-relaxed">{selectedTech.bio || 'Sem descrição disponível.'}</p>
+                                    <h3 className="font-semibold text-main mb-2">Sobre</h3>
+                                    <p className="text-secondary text-sm leading-relaxed">{selectedTech.bio || 'Sem descrição disponível.'}</p>
                                 </div>
                                 <div className="mb-6">
-                                    <h3 className="font-semibold text-slate-900 mb-3">Horários Disponíveis</h3>
+                                    <h3 className="font-semibold text-main mb-3">Horários Disponíveis</h3>
                                     <div className="space-y-4">
                                         {(techSchedules[selectedTech.id] || []).map((day) => (
-                                            <div key={day.date} className="border border-slate-100 rounded-xl p-4 bg-slate-50">
-                                                <div className="flex items-center gap-2 mb-3 text-slate-700 font-medium">
+                                            <div key={day.date} className="border border-subtle rounded-xl p-4 bg-page">
+                                                <div className="flex items-center gap-2 mb-3 text-secondary font-medium">
                                                     <Calendar size={16} />
                                                     {new Date(day.date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}
                                                 </div>
@@ -885,8 +885,8 @@ export default function App() {
                                                                 className={`
                                                                 py-2 rounded-lg text-sm font-medium transition-all
                                                                 ${isDisabled
-                                                                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed decoration-slate-400'
-                                                                        : 'bg-white border border-primary-200 text-primary-700 shadow-sm hover:bg-primary-600 hover:text-white hover:border-primary-600'
+                                                                        ? 'bg-hover text-muted cursor-not-allowed decoration-slate-400'
+                                                                        : 'bg-card border border-primary-200 text-primary-700 shadow-sm hover:bg-primary-600 hover:text-white hover:border-primary-600'
                                                                     }
                                                             `}
                                                             >
@@ -902,7 +902,7 @@ export default function App() {
 
                                 {/* Reviews Section */}
                                 <div className="mb-6">
-                                    <h3 className="font-semibold text-slate-900 mb-3">Avaliações</h3>
+                                    <h3 className="font-semibold text-main mb-3">Avaliações</h3>
                                     <ReviewList
                                         reviews={reviews.filter(r => r.techId === selectedTech.id)}
                                         currentUserRole={currentUser?.role}
@@ -925,8 +925,8 @@ export default function App() {
 
                                     if (!hasCompletedAppointment) {
                                         return (
-                                            <div className="bg-slate-50 p-4 rounded-xl text-center border border-slate-200">
-                                                <p className="text-sm text-slate-600">
+                                            <div className="bg-page p-4 rounded-xl text-center border border-border">
+                                                <p className="text-sm text-secondary">
                                                     Você poderá avaliar este técnico após ser atendido.
                                                 </p>
                                             </div>
@@ -984,14 +984,14 @@ export default function App() {
 
                     {currentView === 'CLIENT_APPOINTMENTS' && currentUser && (
                         <div className="pb-24 px-4 pt-6 max-w-md mx-auto min-h-screen relative">
-                            <h2 className="text-2xl font-bold text-slate-900 mb-6">Meus Agendamentos</h2>
+                            <h2 className="text-2xl font-bold text-main mb-6">Meus Agendamentos</h2>
                             {appointments.filter(a => a.clientId === currentUser.id).length === 0 ? (
                                 <div className="text-center py-12">
-                                    <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Calendar className="text-slate-500" size={32} />
+                                    <div className="bg-subtle w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Calendar className="text-muted" size={32} />
                                     </div>
-                                    <h3 className="text-lg font-medium text-slate-900">Nenhum agendamento</h3>
-                                    <p className="text-slate-500 mt-1 mb-6">Você ainda não tem serviços agendados.</p>
+                                    <h3 className="text-lg font-medium text-main">Nenhum agendamento</h3>
+                                    <p className="text-muted mt-1 mb-6">Você ainda não tem serviços agendados.</p>
                                     <Button onClick={() => setCurrentView('CLIENT_HOME')}>Buscar Técnico</Button>
                                 </div>
                             ) : (
@@ -1086,7 +1086,7 @@ export default function App() {
                 {/* Special lightweight footer for auth pages if needed, or just omit */}
                 {
                     ['LOGIN', 'REGISTER_SELECTION'].includes(currentView) && (
-                        <div className="py-4 text-center text-xs text-slate-600">
+                        <div className="py-4 text-center text-xs text-secondary">
                             <button onClick={() => setCurrentView('TERMS')} className="hover:underline mr-4">Termos de Uso</button>
                             <button onClick={() => setCurrentView('PRIVACY')} className="hover:underline">Política de Privacidade</button>
                         </div>

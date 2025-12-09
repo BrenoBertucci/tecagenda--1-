@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    /* --- LIGHT MODE (Default) --- */
+    /* Backgrounds */
+    --bg-page: #f8fafc;
+    /* slate-50 */
+    --bg-card: #ffffff;
+    --bg-subtle: #f1f5f9;
+    /* slate-100 */
+    --bg-hover: #e2e8f0;
+    /* slate-200 */
+
+    /* Text */
+    --text-main: #0f172a;
+    /* slate-900 */
+    --text-secondary: #334155;
+    /* slate-700 */
+    --text-muted: #64748b;
+    /* slate-500 */
+    --text-inverted: #ffffff;
+
+    /* Borders */
+    --border-light: #e2e8f0;
+    /* slate-200 */
+    --border-medium: #cbd5e1;
+    /* slate-300 */
+
+    /* Semantic Colors (Standard) */
+    --color-primary: #2563eb;
+    /* blue-600 */
+    --color-primary-fg: #ffffff;
+    --color-primary-hover: #1d4ed8;
+    /* blue-700 */
+    --color-primary-light: #eff6ff;
+    /* blue-50 */
+
+    --color-success: #16a34a;
+    /* green-600 */
+    --color-success-bg: #dcfce7;
+    /* green-100 */
+    --color-success-fg: #15803d;
+    /* green-700 */
+
+    --color-error: #dc2626;
+    /* red-600 */
+    --color-error-bg: #fee2e2;
+    /* red-100 */
+    --color-error-fg: #b91c1c;
+    /* red-700 */
+
+    --color-warning: #ca8a04;
+    /* yellow-600 */
+    --color-warning-bg: #fef9c3;
+    /* yellow-100 */
+    --color-warning-fg: #a16207;
+    /* yellow-700 */
+}
+
+/* --- DARK MODE --- */
+html.dark :root {
+    /* Backgrounds */
+    --bg-page: #020617;
+    /* slate-950 */
+    --bg-card: #0f172a;
+    /* slate-900 */
+    --bg-subtle: #1e293b;
+    /* slate-800 */
+    --bg-hover: #334155;
+    /* slate-700 */
+
+    /* Text */
+    --text-main: #f8fafc;
+    /* slate-50 */
+    --text-secondary: #cbd5e1;
+    /* slate-300 */
+    --text-muted: #94a3b8;
+    /* slate-400 */
+    --text-inverted: #0f172a;
+
+    /* Borders */
+    --border-light: #1e293b;
+    /* slate-800 */
+    --border-medium: #334155;
+    /* slate-700 */
+
+    /* Semantic Colors (Dark Adjusted) */
+    --color-primary: #3b82f6;
+    /* blue-500 */
+    --color-primary-hover: #60a5fa;
+    /* blue-400 */
+    --color-primary-light: #172554;
+    /* blue-950 */
+
+    --color-success: #22c55e;
+    /* green-500 */
+    --color-success-bg: #052e16;
+    /* green-950 */
+    --color-success-fg: #86efac;
+    /* green-300 */
+
+    --color-error: #ef4444;
+    /* red-500 */
+    --color-error-bg: #450a0a;
+    /* red-950 */
+    --color-error-fg: #fca5a5;
+    /* red-300 */
+
+    --color-warning: #eab308;
+    /* yellow-500 */
+    --color-warning-bg: #422006;
+    /* yellow-950 */
+    --color-warning-fg: #fde047;
+    /* yellow-300 */
+}
+
+/* --- COLORBLIND MODE (Universal/Safe) --- */
+/* Applied to body/root when active. Overrides previous colors. */
+.colorblind-mode {
+    /* High Contrast Backgrounds */
+    --bg-page: #ffffff;
+    --bg-card: #ffffff;
+    --bg-subtle: #f0f0f0;
+
+    /* High Contrast Text */
+    --text-main: #000000;
+    --text-secondary: #222222;
+    --text-muted: #444444;
+
+    /* Borders */
+    --border-light: #aaaaaa;
+    --border-medium: #000000;
+
+    /*
+       Palette: Blue/Orange/Gray (Safe for Protan/Deutan/Tritan)
+       Success -> Teal/Blue
+       Error -> Orange/Vermillion
+       Warning -> Yellow (High Vis)
+    */
+
+    /* Primary -> Strong Blue */
+    --color-primary: #0055ff;
+    --color-primary-hover: #0033cc;
+    --color-primary-light: #e6efff;
+
+    /* Success -> Teal (Distinct from Red/Green) */
+    --color-success: #0088aa;
+    --color-success-bg: #e0f7fa;
+    --color-success-fg: #004455;
+
+    /* Error -> Vermillion/Burnt Orange */
+    --color-error: #d55e00;
+    --color-error-bg: #ffe0d0;
+    --color-error-fg: #803000;
+
+    /* Warning -> Bright Yellow/Gold */
+    --color-warning: #ffb000;
+    --color-warning-bg: #fff5e0;
+    --color-warning-fg: #664400;
+}
+
+/* Dark + Colorblind Combination */
+html.dark .colorblind-mode {
+    /* High Contrast Dark */
+    --bg-page: #000000;
+    --bg-card: #111111;
+    --bg-subtle: #222222;
+
+    --text-main: #ffffff;
+    --text-secondary: #dddddd;
+    --text-muted: #bbbbbb;
+    --border-light: #555555;
+    --border-medium: #ffffff;
+
+    --color-primary: #6699ff;
+    --color-primary-light: #001133;
+
+    --color-success: #33ccff;
+    --color-success-bg: #002233;
+    --color-success-fg: #ccf5ff;
+
+    --color-error: #ff9966;
+    --color-error-bg: #331100;
+    --color-error-fg: #ffccaa;
+
+    --color-warning: #ffcc00;
+    --color-warning-bg: #332200;
+    --color-warning-fg: #ffee99;
+}
+
+body {
+    -webkit-tap-highlight-color: transparent;
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    transition: background-color 0.3s, color 0.3s;
+}
