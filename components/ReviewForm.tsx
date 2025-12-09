@@ -45,14 +45,14 @@ export const ReviewForm = ({ onSubmit, onCancel, initialData }: ReviewFormProps)
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm animate-fade-in">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">
+        <div className="bg-card p-6 rounded-xl border border-border shadow-sm animate-fade-in">
+            <h3 className="text-lg font-bold text-main mb-4">
                 {initialData ? 'Editar Avaliação' : 'Avaliar Atendimento'}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-secondary mb-2">
                         Classificação
                     </label>
                     <div className="flex gap-2 mb-1">
@@ -68,15 +68,15 @@ export const ReviewForm = ({ onSubmit, onCancel, initialData }: ReviewFormProps)
                                 <Star
                                     size={32}
                                     className={`${star <= (hoveredRating || rating)
-                                            ? 'fill-yellow-400 text-yellow-400'
-                                            : 'text-slate-300'
+                                            ? 'fill-warning text-warning'
+                                            : 'text-subtle'
                                         } transition-colors`}
                                 />
                             </button>
                         ))}
                     </div>
                     {rating > 0 && (
-                        <p className="text-sm font-medium text-slate-600">
+                        <p className="text-sm font-medium text-muted">
                             {rating === 1 && 'Muito ruim'}
                             {rating === 2 && 'Ruim'}
                             {rating === 3 && 'Regular'}
@@ -87,7 +87,7 @@ export const ReviewForm = ({ onSubmit, onCancel, initialData }: ReviewFormProps)
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-secondary mb-2">
                         Pontos Fortes (Opcional)
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -99,8 +99,8 @@ export const ReviewForm = ({ onSubmit, onCancel, initialData }: ReviewFormProps)
                                 className={`
                                     px-3 py-1.5 rounded-full text-sm font-medium transition-all border
                                     ${selectedTags.includes(tag)
-                                        ? 'bg-primary-50 border-primary-200 text-primary-700 shadow-sm'
-                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        ? 'bg-primary-light border-primary/20 text-primary shadow-sm'
+                                        : 'bg-card border-border text-muted hover:bg-subtle'
                                     }
                                 `}
                             >
@@ -111,7 +111,7 @@ export const ReviewForm = ({ onSubmit, onCancel, initialData }: ReviewFormProps)
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <label className="block text-sm font-medium text-secondary mb-1">
                         Comentário (opcional)
                     </label>
                     <textarea
@@ -119,7 +119,7 @@ export const ReviewForm = ({ onSubmit, onCancel, initialData }: ReviewFormProps)
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         placeholder="Conte como foi sua experiência..."
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none transition-all"
+                        className="w-full p-3 bg-page text-main border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none transition-all"
                     />
                 </div>
 
