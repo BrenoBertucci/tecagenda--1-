@@ -41,13 +41,13 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({ techId, onSche
     return (
         <div className="space-y-6">
             {/* Header com botão de gerar */}
-            <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-4 rounded-xl shadow-lg">
+            <div className="bg-gradient-to-r from-primary to-primary-hover text-inverted p-4 rounded-xl shadow-lg">
                 <div className="flex justify-between items-start mb-3">
                     <div>
                         <h3 className="font-bold text-lg mb-1">⚙️ Gerenciamento de Agenda</h3>
-                        <p className="text-sm text-primary-100">Configure seus horários de trabalho</p>
+                        <p className="text-sm text-primary-light">Configure seus horários de trabalho</p>
                     </div>
-                    <Sparkles size={24} className="text-primary-200" />
+                    <Sparkles size={24} className="text-primary-light" />
                 </div>
 
                 <Button
@@ -55,7 +55,7 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({ techId, onSche
                     disabled={generating}
                     variant="secondary"
                     size="sm"
-                    className="bg-white text-primary-700 hover:bg-primary-50"
+                    className="bg-card text-primary hover:bg-subtle border-none"
                 >
                     <Clock size={16} className="mr-2" />
                     {generating ? 'Gerando...' : 'Gerar Próximos 30 Dias'}
@@ -63,12 +63,12 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({ techId, onSche
             </div>
 
             {/* Tabs */}
-            <div className="flex p-1 bg-white border border-slate-200 rounded-xl">
+            <div className="flex p-1 bg-card border border-border rounded-xl">
                 <button
                     onClick={() => setTab('template')}
                     className={`flex-1 py-2 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${tab === 'template'
-                            ? 'bg-primary-50 text-primary-700 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-primary-light text-primary shadow-sm'
+                            : 'text-muted hover:text-main'
                         }`}
                 >
                     <Calendar size={16} />
@@ -77,8 +77,8 @@ export const ScheduleManager: React.FC<ScheduleManagerProps> = ({ techId, onSche
                 <button
                     onClick={() => setTab('blocks')}
                     className={`flex-1 py-2 px-4 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${tab === 'blocks'
-                            ? 'bg-primary-50 text-primary-700 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-primary-light text-primary shadow-sm'
+                            : 'text-muted hover:text-main'
                         }`}
                 >
                     <Ban size={16} />

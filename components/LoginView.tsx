@@ -33,28 +33,28 @@ export const LoginView = ({ onLogin, onNavigateRegister, onError, setCurrentUser
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-page">
             <div className="w-full max-w-sm animate-fade-in">
                 <div className="text-center mb-8">
                     <button
                         onClick={handleLogoClick}
-                        className="bg-primary-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-200 transform rotate-3 active:scale-95 transition-transform"
+                        className="bg-primary w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20 transform rotate-3 active:scale-95 transition-transform"
                     >
-                        <Smartphone className="text-white" size={32} />
+                        <Smartphone className="text-inverted" size={32} />
                     </button>
-                    <h2 className="text-2xl font-bold text-slate-900">Bem-vindo de volta</h2>
-                    <p className="text-slate-500">Acesse sua conta para continuar</p>
+                    <h2 className="text-2xl font-bold text-main">Bem-vindo de volta</h2>
+                    <p className="text-muted">Acesse sua conta para continuar</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                <form onSubmit={handleSubmit} className="bg-card p-6 rounded-2xl shadow-sm border border-border space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                        <label className="block text-sm font-medium text-secondary mb-1">Email</label>
                         <div className="relative">
-                            <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
+                            <Mail className="absolute left-3 top-3 text-muted" size={18} />
                             <input
                                 type="email"
                                 required
-                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                                className="w-full pl-10 pr-4 py-2.5 bg-page text-main border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all"
                                 placeholder="seu@email.com"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
@@ -71,18 +71,18 @@ export const LoginView = ({ onLogin, onNavigateRegister, onError, setCurrentUser
                     <Button type="submit" fullWidth size="lg" className="mt-2 shadow-md">Entrar</Button>
 
                     <div className="mt-8 text-center space-y-4">
-                        <p className="text-slate-500 text-sm">
+                        <p className="text-muted text-sm">
                             Não tem uma conta?{' '}
                             <button
                                 onClick={onNavigateRegister}
-                                className="text-primary-600 font-medium hover:text-primary-700 transition-colors"
+                                className="text-primary font-medium hover:text-primary-hover transition-colors"
                             >
                                 Cadastre-se
                             </button>
                         </p>
                         <button
                             onClick={() => setCurrentView('ABOUT')}
-                            className="text-slate-400 text-sm hover:text-primary-600 transition-colors"
+                            className="text-muted text-sm hover:text-primary transition-colors"
                         >
                             Sobre nós
                         </button>

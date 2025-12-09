@@ -48,11 +48,11 @@ const calculateStrength = (password: string): StrengthResult => {
     if (password.length >= 12 && passedChecks >= 4) score = 4;
 
     const strengthLevels = [
-        { label: 'Muito fraca', color: 'text-red-600', bgColor: 'bg-red-500' },
-        { label: 'Fraca', color: 'text-orange-600', bgColor: 'bg-orange-500' },
-        { label: 'Média', color: 'text-yellow-600', bgColor: 'bg-yellow-500' },
-        { label: 'Forte', color: 'text-lime-600', bgColor: 'bg-lime-500' },
-        { label: 'Muito forte', color: 'text-green-600', bgColor: 'bg-green-500' },
+        { label: 'Muito fraca', color: 'text-error', bgColor: 'bg-error' },
+        { label: 'Fraca', color: 'text-error-fg', bgColor: 'bg-error-fg' },
+        { label: 'Média', color: 'text-warning-fg', bgColor: 'bg-warning-fg' },
+        { label: 'Forte', color: 'text-success-fg', bgColor: 'bg-success-fg' },
+        { label: 'Muito forte', color: 'text-success', bgColor: 'bg-success' },
     ];
 
     return {
@@ -79,16 +79,16 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
     return (
         <div className="space-y-2">
             {label && (
-                <label className="block text-sm font-medium text-slate-700">
+                <label className="block text-sm font-medium text-secondary">
                     {label}
                 </label>
             )}
             <div className="relative">
-                <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
+                <Lock className="absolute left-3 top-3 text-muted" size={18} />
                 <input
                     type={visible ? 'text' : 'password'}
                     required={required}
-                    className={`w-full pl-10 pr-12 py-2.5 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none transition-all ${isWeak ? 'border-red-300 focus:ring-red-500' : 'border-slate-200'
+                    className={`w-full pl-10 pr-12 py-2.5 bg-page text-main border rounded-lg focus:ring-2 focus:ring-primary outline-none transition-all ${isWeak ? 'border-error focus:ring-error' : 'border-border'
                         }`}
                     placeholder={placeholder}
                     value={value}
@@ -97,7 +97,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
                 <button
                     type="button"
                     onClick={() => setVisible(!visible)}
-                    className="absolute right-3 top-2.5 p-0.5 text-slate-400 hover:text-slate-600 transition-colors rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="absolute right-3 top-2.5 p-0.5 text-muted hover:text-main transition-colors rounded focus:outline-none focus:ring-2 focus:ring-primary"
                     tabIndex={-1}
                     aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
                 >
@@ -114,7 +114,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
                                 key={level}
                                 className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${level <= strength.score
                                         ? strength.bgColor
-                                        : 'bg-slate-200'
+                                        : 'bg-subtle'
                                     }`}
                             />
                         ))}
@@ -128,7 +128,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
                     </div>
 
                     {/* Requirements checklist */}
-                    <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs text-muted">
                         <RequirementItem
                             met={strength.checks.length}
                             text="Mínimo 8 caracteres"
@@ -157,7 +157,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
 };
 
 const RequirementItem: React.FC<{ met: boolean; text: string }> = ({ met, text }) => (
-    <div className={`flex items-center gap-1 ${met ? 'text-green-600' : 'text-slate-400'}`}>
+    <div className={`flex items-center gap-1 ${met ? 'text-success' : 'text-muted'}`}>
         <span className="text-[10px]">{met ? '✓' : '○'}</span>
         <span>{text}</span>
     </div>

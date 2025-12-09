@@ -70,53 +70,53 @@ const ClientHome = ({ usersDb, onSelectTech }: { usersDb: DbUser[], onSelectTech
     return (
         <div className="pb-24 px-4 pt-6 max-w-md mx-auto">
             <div className="mb-6">
-                <h2 className="text-2xl font-bold text-slate-900">Encontre um Técnico</h2>
-                <p className="text-slate-500">Profissionais qualificados próximos a você</p>
+                <h2 className="text-2xl font-bold text-main">Encontre um Técnico</h2>
+                <p className="text-muted">Profissionais qualificados próximos a você</p>
             </div>
 
             <div className="relative mb-6">
                 <input
                     type="text"
                     placeholder="Buscar por especialidade..."
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-sm outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 bg-card text-main placeholder-muted border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary shadow-sm outline-none transition-all"
                 />
-                <Search className="absolute left-3 top-3.5 text-slate-500" size={20} aria-hidden="true" tabIndex={-1} />
+                <Search className="absolute left-3 top-3.5 text-muted" size={20} aria-hidden="true" tabIndex={-1} />
             </div>
 
             <div className="space-y-4">
                 {techs.map(tech => (
-                    <div key={tech.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div key={tech.id} className="bg-card p-4 rounded-xl border border-subtle shadow-sm hover:shadow-md transition-shadow">
                         <div className="flex gap-4">
                             {tech.avatarUrl ? (
                                 <img src={tech.avatarUrl} alt={tech.name} className="w-16 h-16 rounded-full object-cover" />
                             ) : (
-                                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                <div className="w-16 h-16 rounded-full bg-subtle flex items-center justify-center text-muted">
                                     <UserIcon size={24} />
                                 </div>
                             )}
                             <div className="flex-1">
                                 <div className="flex justify-between items-start">
-                                    <h3 className="font-bold text-slate-900">{tech.name}</h3>
-                                    <div className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded text-xs font-medium text-yellow-700">
-                                        <Star size={12} className="fill-yellow-500 text-yellow-500" />
+                                    <h3 className="font-bold text-main">{tech.name}</h3>
+                                    <div className="flex items-center gap-1 bg-warning-bg px-2 py-0.5 rounded text-xs font-medium text-warning-fg">
+                                        <Star size={12} className="fill-warning text-warning" />
                                         {tech.rating || 'N/A'}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1 text-sm text-slate-500 mt-1">
+                                <div className="flex items-center gap-1 text-sm text-muted mt-1">
                                     <MapPin size={14} />
                                     {tech.distance || '? km'} • {tech.address || 'Endereço n/d'}
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     {tech.specialties?.slice(0, 2).map((spec, i) => (
-                                        <span key={i} className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-medium">
+                                        <span key={i} className="text-xs px-2 py-1 bg-subtle text-secondary rounded-md font-medium">
                                             {spec}
                                         </span>
                                     ))}
                                 </div>
                             </div>
                         </div>
-                        <div className="mt-4 pt-4 border-t border-slate-50 flex justify-between items-center">
-                            <span className="text-sm font-semibold text-slate-700">{tech.priceEstimate || 'Sob consulta'}</span>
+                        <div className="mt-4 pt-4 border-t border-subtle flex justify-between items-center">
+                            <span className="text-sm font-semibold text-secondary">{tech.priceEstimate || 'Sob consulta'}</span>
                             <Button size="sm" onClick={() => onSelectTech(tech.id)}>
                                 Ver Agenda
                             </Button>
@@ -141,22 +141,22 @@ const ClientBooking = ({ date, time, onConfirm, onBack }: ClientBookingProps) =>
     const [issueDesc, setIssueDesc] = useState('');
 
     return (
-        <div className="min-h-screen bg-white max-w-md mx-auto flex flex-col">
-            <div className="sticky top-0 z-30 bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3">
-                <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full transition-colors" aria-label="Voltar">
+        <div className="min-h-screen bg-card max-w-md mx-auto flex flex-col">
+            <div className="sticky top-0 z-30 bg-card border-b border-subtle px-4 py-3 flex items-center gap-3">
+                <button onClick={onBack} className="p-2 hover:bg-hover rounded-full transition-colors" aria-label="Voltar">
                     <ChevronLeft size={24} />
                 </button>
-                <span className="font-semibold text-slate-900">Confirmar Agendamento</span>
+                <span className="font-semibold text-main">Confirmar Agendamento</span>
             </div>
 
             <div className="p-6 flex-1">
-                <div className="bg-primary-50 p-4 rounded-xl mb-6 flex gap-4 items-center">
-                    <div className="bg-primary-100 p-3 rounded-full">
-                        <Calendar className="text-primary-600" size={24} />
+                <div className="bg-primary-light p-4 rounded-xl mb-6 flex gap-4 items-center">
+                    <div className="bg-primary-light p-3 rounded-full border border-primary/20">
+                        <Calendar className="text-primary" size={24} />
                     </div>
                     <div>
-                        <p className="text-sm text-primary-700 font-medium">Data e Hora</p>
-                        <p className="text-lg font-bold text-primary-900">
+                        <p className="text-sm text-primary font-medium">Data e Hora</p>
+                        <p className="text-lg font-bold text-primary">
                             {new Date(date).toLocaleDateString('pt-BR')} às {time}
                         </p>
                     </div>
@@ -164,25 +164,25 @@ const ClientBooking = ({ date, time, onConfirm, onBack }: ClientBookingProps) =>
 
                 <form onSubmit={(e) => { e.preventDefault(); onConfirm(deviceModel, issueDesc); }} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Modelo do Aparelho</label>
+                        <label className="block text-sm font-medium text-secondary mb-1">Modelo do Aparelho</label>
                         <input
                             required
                             type="text"
                             value={deviceModel}
                             onChange={(e) => setDeviceModel(e.target.value)}
                             placeholder="Ex: iPhone 13 Pro"
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                            className="w-full p-3 bg-page text-main border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none transition-all"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Descrição do Defeito</label>
+                        <label className="block text-sm font-medium text-secondary mb-1">Descrição do Defeito</label>
                         <textarea
                             required
                             rows={4}
                             value={issueDesc}
                             onChange={(e) => setIssueDesc(e.target.value)}
                             placeholder="Descreva o problema..."
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 outline-none resize-none transition-all"
+                            className="w-full p-3 bg-page text-main border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none resize-none transition-all"
                         />
                     </div>
 
@@ -677,14 +677,14 @@ export default function App() {
 
         return (
             <div className="fixed bottom-20 left-4 right-4 z-50 animate-slide-up">
-                <div className="bg-white rounded-xl shadow-2xl border border-amber-200 p-4 max-w-md mx-auto">
+                <div className="bg-card rounded-xl shadow-2xl border border-warning-bg p-4 max-w-md mx-auto">
                     <div className="flex items-start gap-3">
-                        <div className="bg-amber-100 p-2 rounded-full shrink-0">
-                            <AlertCircle className="text-amber-600" size={24} />
+                        <div className="bg-warning-bg p-2 rounded-full shrink-0">
+                            <AlertCircle className="text-warning-fg" size={24} />
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-slate-900">Confirmação Pendente</h3>
-                            <p className="text-sm text-slate-600 mt-1">
+                            <h3 className="font-bold text-main">Confirmação Pendente</h3>
+                            <p className="text-sm text-muted mt-1">
                                 O agendamento de <strong>{apt.date} às {apt.time}</strong> foi realizado?
                             </p>
                             <div className="flex gap-2 mt-3">
@@ -712,24 +712,24 @@ export default function App() {
     };
 
     const Header = () => (
-        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm transition-colors">
+        <header className="bg-card border-b border-border sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-sm transition-colors">
             <div className="flex items-center gap-2" onClick={() => currentUser?.role === UserRole.CLIENT && setCurrentView('CLIENT_HOME')}>
-                <div className="bg-primary-600 p-1.5 rounded-lg shadow-sm">
-                    <Smartphone className="text-white" size={20} />
+                <div className="bg-primary p-1.5 rounded-lg shadow-sm">
+                    <Smartphone className="text-inverted" size={20} />
                 </div>
-                <h1 className="font-bold text-xl tracking-tight text-slate-900 dark:text-white cursor-pointer">TecAgenda</h1>
+                <h1 className="font-bold text-xl tracking-tight text-main cursor-pointer">TecAgenda</h1>
             </div>
             {currentUser && (
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setCurrentView('SETTINGS')}
-                        className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                        className="p-2 text-muted hover:bg-hover rounded-full transition-colors"
                         title="Configurações"
                         aria-label="Configurações"
                     >
                         <Settings size={20} />
                     </button>
-                    <button onClick={() => setLogoutConfirmation(true)} className="text-slate-500 dark:text-slate-400 hover:text-red-600 transition-colors" title="Sair" aria-label="Sair">
+                    <button onClick={() => setLogoutConfirmation(true)} className="text-muted hover:text-error transition-colors" title="Sair" aria-label="Sair">
                         <LogOut size={20} />
                     </button>
                 </div>
@@ -739,7 +739,7 @@ export default function App() {
 
     return (
         <ThemeProvider>
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans relative text-slate-900 dark:text-slate-100 pb-safe transition-colors">
+            <div className="min-h-screen bg-page font-sans relative text-main pb-safe transition-colors">
                 <SpeedInsights />
                 <FloatingAccessibilityMenu />
                 {currentUser && (
@@ -757,7 +757,7 @@ export default function App() {
                 {/* Notification Toast */}
                 {
                     notification && (
-                        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-2 animate-fade-in-down ${notification.type === 'success' ? 'bg-success text-inverted' : 'bg-error text-inverted'
                             }`}>
                             {notification.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
                             <span className="font-medium">{notification.msg}</span>
@@ -999,30 +999,30 @@ export default function App() {
                                     {appointments.filter(a => a.clientId === currentUser.id).map(apt => {
                                         const canCancel = checkCanCancel(apt.date, apt.time);
                                         return (
-                                            <div key={apt.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                                            <div key={apt.id} className="bg-card p-4 rounded-xl border border-subtle shadow-sm hover:shadow-md transition-shadow">
                                                 <div className="flex justify-between items-start mb-3">
                                                     <div>
-                                                        <h4 className="font-bold text-slate-900">{apt.techName}</h4>
-                                                        <p className="text-xs text-slate-500">Técnico</p>
+                                                        <h4 className="font-bold text-main">{apt.techName}</h4>
+                                                        <p className="text-xs text-muted">Técnico</p>
                                                     </div>
                                                     <div className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wider
-                                                    ${apt.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
-                                                            apt.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}
+                                                    ${apt.status === 'CONFIRMED' ? 'bg-success-bg text-success-fg' :
+                                                            apt.status === 'CANCELLED' ? 'bg-error-bg text-error-fg' : 'bg-subtle text-muted'}
                                                 `}>
                                                         {apt.status === 'CONFIRMED' ? 'Confirmado' :
                                                             apt.status === 'CANCELLED' ? 'Cancelado' : apt.status}
                                                     </div>
                                                 </div>
-                                                <div className="space-y-2 text-sm text-slate-600 mb-4">
+                                                <div className="space-y-2 text-sm text-secondary mb-4">
                                                     <div className="flex items-center gap-2">
-                                                        <Calendar size={16} className="text-primary-500" />
+                                                        <Calendar size={16} className="text-primary" />
                                                         <span>{new Date(apt.date).toLocaleDateString('pt-BR')} às {apt.time}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <Smartphone size={16} className="text-primary-500" />
+                                                        <Smartphone size={16} className="text-primary" />
                                                         <span>{apt.deviceModel}</span>
                                                     </div>
-                                                    <div className="bg-slate-50 p-2 rounded text-xs italic border border-slate-100">
+                                                    <div className="bg-subtle p-2 rounded text-xs italic border border-border">
                                                         "{apt.issueDescription}"
                                                     </div>
                                                 </div>
@@ -1031,7 +1031,7 @@ export default function App() {
                                                         variant="secondary"
                                                         fullWidth
                                                         size="sm"
-                                                        className={`${canCancel ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-slate-400 border-slate-200 bg-slate-50 cursor-not-allowed'}`}
+                                                        className={`${canCancel ? 'text-error border-error-bg hover:bg-error-bg' : 'text-muted border-border bg-subtle cursor-not-allowed'}`}
                                                         onClick={() => { if (canCancel) setAppointmentToCancel(apt); }}
                                                         disabled={!canCancel}
                                                     >
@@ -1095,17 +1095,17 @@ export default function App() {
 
                 {
                     currentUser?.role === UserRole.CLIENT && currentView !== 'SETTINGS' && (
-                        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg transition-colors">
+                        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border pb-safe pt-2 px-6 flex justify-around z-40 shadow-lg transition-colors">
                             <button
                                 onClick={() => setCurrentView('CLIENT_HOME')}
-                                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
+                                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_HOME' || currentView === 'CLIENT_TECH_PROFILE' ? 'text-primary' : 'text-muted hover:text-main'}`}
                             >
                                 <Search size={24} />
                                 <span className="text-xs font-medium mt-1">Buscar</span>
                             </button>
                             <button
                                 onClick={() => setCurrentView('CLIENT_APPOINTMENTS')}
-                                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary-600' : 'text-slate-600 hover:text-slate-900'}`}
+                                className={`flex flex-col items-center p-2 rounded-lg transition-colors ${currentView === 'CLIENT_APPOINTMENTS' ? 'text-primary' : 'text-muted hover:text-main'}`}
                             >
                                 <History size={24} />
                                 <span className="text-xs font-medium mt-1">Agenda</span>

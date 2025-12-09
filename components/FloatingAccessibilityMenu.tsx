@@ -15,7 +15,7 @@ export const FloatingAccessibilityMenu = () => {
             `}>
                 <button
                     onClick={toggleTheme}
-                    className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    className="flex items-center gap-3 px-4 py-2 bg-card text-main rounded-full shadow-lg border border-border hover:bg-subtle transition-colors"
                     aria-label={theme === 'dark' ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
                 >
                     {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
@@ -28,8 +28,8 @@ export const FloatingAccessibilityMenu = () => {
                     onClick={toggleColorblind}
                     className={`flex items-center gap-3 px-4 py-2 rounded-full shadow-lg border transition-colors
                         ${isColorblind
-                            ? 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700'
-                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}
+                            ? 'bg-primary text-inverted border-primary hover:bg-primary-hover'
+                            : 'bg-card text-main border-border hover:bg-subtle'}
                     `}
                     aria-label="Alternar Modo Daltonismo"
                 >
@@ -46,8 +46,8 @@ export const FloatingAccessibilityMenu = () => {
                 className={`
                     p-3 rounded-full shadow-xl transition-all duration-300
                     ${isOpen
-                        ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rotate-90'
-                        : 'bg-primary-600 text-white hover:bg-primary-700 hover:scale-110'}
+                        ? 'bg-subtle text-muted rotate-90'
+                        : 'bg-primary text-inverted hover:bg-primary-hover hover:scale-110'}
                 `}
                 aria-label="Menu de Acessibilidade"
                 aria-expanded={isOpen}
