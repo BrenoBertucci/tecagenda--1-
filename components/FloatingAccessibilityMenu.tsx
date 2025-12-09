@@ -57,3 +57,4 @@ export const FloatingAccessibilityMenu = () => {
         </div>
     );
 };
+

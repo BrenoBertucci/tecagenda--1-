@@ -123,19 +123,19 @@ export const SettingsView = ({ currentUser, usersDb, onUpdate, onDeleteRequest, 
                     {isTech && (
                         <>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Endereço</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Endereço</label>
                                 <div className="relative">
                                     <MapPin className="absolute left-3 top-3 text-slate-400" size={18} />
-                                    <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 transition-all" value={address} onChange={e => setAddress(e.target.value)} />
+                                    <input type="text" className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 transition-all text-slate-900 dark:text-white" value={address} onChange={e => setAddress(e.target.value)} />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Especialidades (separadas por vírgula)</label>
-                                <input type="text" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 transition-all" value={specialties} onChange={e => setSpecialties(e.target.value)} />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Especialidades (separadas por vírgula)</label>
+                                <input type="text" className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-primary-500 transition-all text-slate-900 dark:text-white" value={specialties} onChange={e => setSpecialties(e.target.value)} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Bio</label>
-                                <textarea rows={3} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none resize-none focus:ring-2 focus:ring-primary-500 transition-all" value={bio} onChange={e => setBio(e.target.value)} />
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bio</label>
+                                <textarea rows={3} className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none resize-none focus:ring-2 focus:ring-primary-500 transition-all text-slate-900 dark:text-white" value={bio} onChange={e => setBio(e.target.value)} />
                             </div>
                         </>
                     )}

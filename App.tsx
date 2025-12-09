@@ -38,6 +38,7 @@ import { LoadingOverlay } from './components/LoadingOverlay';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { FloatingAccessibilityMenu } from './components/FloatingAccessibilityMenu';
 
+
 // --- GLOBAL STATE TYPES ---
 
 type ViewState =
@@ -55,7 +56,8 @@ type ViewState =
     | 'ADMIN_LOGIN'
     | 'TERMS'
     | 'PRIVACY'
-    | 'ABOUT';
+    | 'ABOUT'
+
 
 
 
@@ -803,6 +805,7 @@ export default function App() {
                     {currentView === 'ABOUT' && (
                         <AboutView onBack={() => setCurrentView('LOGIN')} />
                     )}
+
 
 
                     {currentView === 'SETTINGS' && currentUser && (
